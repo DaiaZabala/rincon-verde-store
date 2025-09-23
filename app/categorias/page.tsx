@@ -18,7 +18,8 @@ async function getCategories() {
       GROUP BY c.id
       ORDER BY c.name ASC
     `
-    return categories
+    // Asegurarse de que devuelva un array
+    return Array.isArray(categories) ? categories : []
   } catch (error) {
     console.error("Error fetching categories:", error)
     return []
@@ -26,7 +27,7 @@ async function getCategories() {
 }
 
 export default async function CategoriesPage() {
-  const categories = await getCategories()
+  const categories = await getCategories() || []
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,20 +43,14 @@ export default async function CategoriesPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">No hay categorías disponibles</p>
-              </div>
-            ) : (
+            {Array.isArray(categories) && categories.length > 0 ? (
               categories.map((category: any) => (
                 <Link key={category.id} href={`/productos?category=${category.slug}`}>
                   <Card className="group hover:shadow-lg transition-shadow cursor-pointer h-full">
                     <CardHeader className="p-0">
                       <div className="aspect-video relative overflow-hidden rounded-t-lg">
                         <img
-                          src={
-                            category.image_url || "/placeholder.svg?height=200&width=400&query=school supplies category"
-                          }
+                          src={category.image_url || "/placeholder.svg?height=200&width=400&query=category"}
                           alt={category.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -67,7 +62,9 @@ export default async function CategoriesPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      <CardTitle className="group-hover:text-primary transition-colors mb-2">{category.name}</CardTitle>
+                      <CardTitle className="group-hover:text-primary transition-colors mb-2">
+                        {category.name}
+                      </CardTitle>
                       <CardDescription className="line-clamp-3">{category.description}</CardDescription>
                       <div className="flex items-center justify-between mt-4">
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -79,6 +76,10 @@ export default async function CategoriesPage() {
                   </Card>
                 </Link>
               ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">No hay categorías disponibles</p>
+              </div>
             )}
           </div>
         </div>
@@ -88,3 +89,4 @@ export default async function CategoriesPage() {
     </div>
   )
 }
+

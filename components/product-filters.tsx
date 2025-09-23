@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, X } from "lucide-react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
 
 interface Category {
   id: number
@@ -24,14 +24,14 @@ interface ProductFiltersProps {
   currentSearch?: string
 }
 
-export function ProductFilters({ categories, currentCategory, currentSearch }: ProductFiltersProps) {
+export function ProductFilters({ categories = [], currentCategory, currentSearch }: ProductFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState(currentSearch || "")
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString() || "")
 
     if (searchTerm.trim()) {
       params.set("search", searchTerm.trim())
@@ -39,7 +39,7 @@ export function ProductFilters({ categories, currentCategory, currentSearch }: P
       params.delete("search")
     }
 
-    params.delete("page") // Reset to first page
+    params.delete("page")
     router.push(`/productos?${params.toString()}`)
   }
 
@@ -48,7 +48,7 @@ export function ProductFilters({ categories, currentCategory, currentSearch }: P
     router.push("/productos")
   }
 
-  const hasActiveFilters = currentCategory || currentSearch
+  const hasActiveFilters = Boolean(currentCategory || currentSearch)
 
   return (
     <div className="space-y-6">
@@ -91,13 +91,13 @@ export function ProductFilters({ categories, currentCategory, currentSearch }: P
             <div className="flex flex-wrap gap-2">
               {currentCategory && (
                 <Badge variant="secondary" className="flex items-center gap-1">
-                  Categoría: {categories.find((c) => c.slug === currentCategory)?.name}
+                  Categoría: {categories.find((c) => c.slug === currentCategory)?.name || currentCategory}
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-auto p-0 ml-1"
                     onClick={() => {
-                      const params = new URLSearchParams(searchParams.toString())
+                      const params = new URLSearchParams(searchParams?.toString() || "")
                       params.delete("category")
                       params.delete("page")
                       router.push(`/productos?${params.toString()}`)
@@ -115,7 +115,7 @@ export function ProductFilters({ categories, currentCategory, currentSearch }: P
                     size="sm"
                     className="h-auto p-0 ml-1"
                     onClick={() => {
-                      const params = new URLSearchParams(searchParams.toString())
+                      const params = new URLSearchParams(searchParams?.toString() || "")
                       params.delete("search")
                       params.delete("page")
                       setSearchTerm("")
@@ -146,9 +146,9 @@ export function ProductFilters({ categories, currentCategory, currentSearch }: P
             >
               Todas las categorías
             </Link>
-            {categories.map((category) => {
+            {Array.isArray(categories) && categories.map((category) => {
               const isActive = currentCategory === category.slug
-              const params = new URLSearchParams(searchParams.toString())
+              const params = new URLSearchParams(searchParams?.toString() || "")
               params.set("category", category.slug)
               params.delete("page")
 

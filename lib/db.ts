@@ -54,12 +54,13 @@ export interface OrderItem {
   created_at: Date
 }
 
-export interface User {
+export type User = {
   id: number
-  name: string
   email: string
-  password: string
+  name: string
   role: string
+  password_hash: string
   created_at: Date
   updated_at: Date
+  is_active?: boolean
 }

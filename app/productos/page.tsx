@@ -44,16 +44,14 @@ async function getProducts(searchParams: SearchParams) {
     queryStr += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
     params.push(limit, offset)
 
-    // Interpolate params into queryStr for sql.unsafe
     const interpolatedQuery = queryStr.replace(/\$(\d+)/g, (_, n) => {
       const val = params[Number(n) - 1]
       if (typeof val === "string") return `'${val.replace(/'/g, "''")}'`
       return val
     })
     const productsResult = await sql.unsafe(interpolatedQuery)
-    const products = JSON.parse(JSON.stringify(productsResult))
+    const products = Array.isArray(productsResult) ? JSON.parse(JSON.stringify(productsResult)) : []
 
-    // Get total count
     let countQuery = `
       SELECT COUNT(*) as total
       FROM products p
@@ -72,17 +70,18 @@ async function getProducts(searchParams: SearchParams) {
       countParams.push(`%${search}%`)
     }
 
-    const countResult = await sql.unsafe(
+    const countResultRaw = await sql.unsafe(
       countQuery.replace(/\$(\d+)/g, (_, n) => {
         const val = countParams[Number(n) - 1]
         if (typeof val === "string") return `'${val.replace(/'/g, "''")}'`
         return val
       })
     )
-    const total = Number(JSON.parse(JSON.stringify(countResult))[0]?.total || 0)
+    const countResult = Array.isArray(countResultRaw) ? JSON.parse(JSON.stringify(countResultRaw)) : []
+    const total = Number(countResult[0]?.total || 0)
 
     return serializeData({
-      products: products || [],
+      products,
       pagination: {
         page,
         limit,
@@ -101,7 +100,7 @@ async function getProducts(searchParams: SearchParams) {
 
 async function getCategories() {
   try {
-    const categories = await sql.unsafe(`
+    const categoriesRaw = await sql.unsafe(`
       SELECT 
         c.*,
         COUNT(p.id) as product_count
@@ -111,7 +110,7 @@ async function getCategories() {
       GROUP BY c.id
       ORDER BY c.name ASC
     `)
-    return serializeData(categories)
+    return Array.isArray(categoriesRaw) ? serializeData(categoriesRaw) : []
   } catch (error) {
     console.error("Error fetching categories:", error)
     return []
@@ -123,7 +122,10 @@ export default async function ProductsPage({
 }: {
   searchParams: SearchParams
 }) {
-  const [productsData, categories] = await Promise.all([getProducts(searchParams), getCategories()])
+  const [productsData, categoriesData] = await Promise.all([getProducts(searchParams), getCategories()])
+
+  const products = Array.isArray(productsData.products) ? productsData.products : []
+  const categories = Array.isArray(categoriesData) ? categoriesData : []
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -137,7 +139,6 @@ export default async function ProductsPage({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Filters Sidebar */}
             <div className="lg:col-span-1">
               <Suspense fallback={<div>Cargando filtros...</div>}>
                 <ProductFilters
@@ -148,11 +149,10 @@ export default async function ProductsPage({
               </Suspense>
             </div>
 
-            {/* Products Grid */}
             <div className="lg:col-span-3">
               <Suspense fallback={<div>Cargando productos...</div>}>
                 <ProductGrid
-                  products={productsData.products}
+                  products={products}
                   pagination={productsData.pagination}
                   searchParams={searchParams}
                 />

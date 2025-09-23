@@ -43,12 +43,14 @@ async function getRecentOrders() {
       ORDER BY created_at DESC 
       LIMIT 5
     `)
-    return JSON.parse(JSON.stringify(orders))
+    // Asegurarse de que sea un array
+    return Array.isArray(orders) ? orders : []
   } catch (error) {
     console.error("Error fetching recent orders:", error)
     return []
   }
 }
+
 
 export default async function AdminDashboard() {
   const stats = await getDashboardStats()

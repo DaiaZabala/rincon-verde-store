@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
+
 interface Product {
   id: number
   name: string
@@ -32,7 +33,7 @@ interface ProductGridProps {
   searchParams: any
 }
 
-export function ProductGrid({ products, pagination, searchParams }: ProductGridProps) {
+export function ProductGrid({ products = [], pagination, searchParams }: ProductGridProps) {
   const router = useRouter()
   const currentSearchParams = useSearchParams()
   const { dispatch } = useCart()
@@ -62,7 +63,7 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
     })
   }
 
-  if (products.length === 0) {
+  if (!Array.isArray(products) || products.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground mb-4">No se encontraron productos</p>
@@ -75,7 +76,6 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
 
   return (
     <div className="space-y-6">
-      {/* Results Info */}
       <div className="flex justify-between items-center">
         <p className="text-muted-foreground">
           Mostrando {(pagination.page - 1) * pagination.limit + 1}-
@@ -83,9 +83,8 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
         </p>
       </div>
 
-      {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products?.map((product) => (
+        {products.map((product) => (
           <Card key={product.id} className="group hover:shadow-lg transition-shadow">
             <CardHeader className="p-0">
               <div className="relative aspect-square">
@@ -147,7 +146,6 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
         ))}
       </div>
 
-      {/* Pagination */}
       {pagination.pages > 1 && (
         <div className="flex justify-center space-x-2 pt-6">
           {pagination.page > 1 && (
@@ -177,5 +175,4 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
     </div>
   )
 }
-
 
