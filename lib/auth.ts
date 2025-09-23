@@ -42,36 +42,54 @@ export async function authenticateUser(email: string, password: string): Promise
     if (users.length === 0) return null
 
     const user = users[0] as User
-    const isValid = await verifyPassword(password, user.password_hash)
+    const isValid = await verifyPassword(password, user.password)
 
     if (!isValid) return null
 
     return user
   } catch (error) {
-    console.error("Authentication error:", error)
+    console.error("Error authenticating user:", error)
     return null
   }
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+
+export async function getCurrentUser() {
+  const cookieStore = cookies()
+  const token = cookieStore.get("auth-token")
+
+  if (!token?.value) {
+    return null
+  }
+
   try {
-    const cookieStore = cookies()
-    const token = cookieStore.get("auth-token")?.value
+    const payload = await verifyToken(token.value)
+    if (!payload?.userId) {
+      return null
+    }
 
-    if (!token) return null
-
-    const payload = await verifyToken(token)
-    if (!payload) return null
-
-    const users = await sql`
-      SELECT * FROM users 
-      WHERE id = ${payload.userId} AND role = 'admin'
+    const result = await sql`
+      SELECT id, name, email, role 
+      FROM users 
+      WHERE id = ${payload.userId} 
+        AND role = 'admin'
+        AND is_active = true
       LIMIT 1
     `
 
-    return users.length > 0 ? (users[0] as User) : null
+    const user = result[0]
+    if (!user) {
+      return null
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }
   } catch (error) {
-    console.error("Get current user error:", error)
+    console.error("Error getting current user:", error)
     return null
   }
 }

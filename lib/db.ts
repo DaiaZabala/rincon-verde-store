@@ -4,21 +4,7 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set")
 }
 
-const rawSql = neon(process.env.DATABASE_URL)
-
-type SqlQuery = {
-  strings: TemplateStringsArray | string[]
-  values?: any[]
-}
-
-export const sql = {
-  ...rawSql,
-  unsafe: (query: string, params: any[] = []) => {
-    // Convertir la consulta y parámetros a un formato que neon pueda entender
-    const strings = [query]
-    return rawSql(strings as any as TemplateStringsArray, ...params)
-  }
-}
+export const sql = neon(process.env.DATABASE_URL)
 
 // Database types
 export interface Product {
@@ -72,7 +58,7 @@ export interface User {
   id: number
   name: string
   email: string
-  password_hash: string
+  password: string
   role: string
   created_at: Date
   updated_at: Date

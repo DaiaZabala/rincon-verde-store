@@ -44,7 +44,13 @@ async function getProducts(searchParams: SearchParams) {
     queryStr += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
     params.push(limit, offset)
 
-    const productsResult = await sql.unsafe(queryStr, params)
+    // Interpolate params into queryStr for sql.unsafe
+    const interpolatedQuery = queryStr.replace(/\$(\d+)/g, (_, n) => {
+      const val = params[Number(n) - 1]
+      if (typeof val === "string") return `'${val.replace(/'/g, "''")}'`
+      return val
+    })
+    const productsResult = await sql.unsafe(interpolatedQuery)
     const products = JSON.parse(JSON.stringify(productsResult))
 
     // Get total count
