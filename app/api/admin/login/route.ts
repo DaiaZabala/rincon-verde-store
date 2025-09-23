@@ -5,17 +5,21 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
+    console.log("[v0] Login attempt for email:", email) // Added debug logging
+
     if (!email || !password) {
       return NextResponse.json({ error: "Email y contraseña son requeridos" }, { status: 400 })
     }
 
     const user = await authenticateUser(email, password)
+    console.log("[v0] Authentication result:", user ? "Success" : "Failed") // Added debug logging
 
     if (!user) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 
     const token = await createToken(user.id, user.email, user.role)
+    console.log("[v0] Token created successfully") // Added debug logging
 
     const response = NextResponse.json({
       success: true,
@@ -35,6 +39,7 @@ export async function POST(request: NextRequest) {
       path: "/",
     })
 
+    console.log("[v0] Cookie set successfully") // Added debug logging
     return response
   } catch (error) {
     console.error("Login error:", error)

@@ -33,16 +33,22 @@ export async function verifyToken(token: string) {
 
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   try {
+    console.log("[v0] Authenticating user:", email) // Added debug logging
+
     const users = await sql`
       SELECT * FROM users 
       WHERE email = ${email} AND role = 'admin'
       LIMIT 1
     `
 
+    console.log("[v0] Users found:", users.length) // Added debug logging
+
     if (users.length === 0) return null
 
     const user = users[0] as User
     const isValid = await verifyPassword(password, user.password_hash)
+
+    console.log("[v0] Password valid:", isValid) // Added debug logging
 
     if (!isValid) return null
 
