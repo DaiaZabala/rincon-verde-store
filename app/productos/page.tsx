@@ -4,6 +4,7 @@ import { Footer } from "@/components/footer"
 import { ProductGrid } from "@/components/product-grid"
 import { ProductFilters } from "@/components/product-filters"
 import { Suspense } from "react"
+import { serializeData } from "@/lib/utils/serialize"
 
 interface SearchParams {
   category?: string
@@ -19,7 +20,7 @@ async function getProducts(searchParams: SearchParams) {
     const limit = 12
     const offset = (page - 1) * limit
 
-    let query = `
+    let queryStr = `
       SELECT 
         p.*,
         c.name as category_name,
@@ -31,19 +32,20 @@ async function getProducts(searchParams: SearchParams) {
     const params: any[] = []
 
     if (category) {
-      query += ` AND c.slug = $${params.length + 1}`
+      queryStr += ` AND c.slug = $${params.length + 1}`
       params.push(category)
     }
 
     if (search) {
-      query += ` AND (p.name ILIKE $${params.length + 1} OR p.description ILIKE $${params.length + 1})`
+      queryStr += ` AND (p.name ILIKE $${params.length + 1} OR p.description ILIKE $${params.length + 1})`
       params.push(`%${search}%`)
     }
 
-    query += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
+    queryStr += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
     params.push(limit, offset)
 
-    const products = await sql.unsafe(query, params)
+    const productsResult = await sql.unsafe(queryStr, params)
+    const products = JSON.parse(JSON.stringify(productsResult))
 
     // Get total count
     let countQuery = `
@@ -64,30 +66,36 @@ async function getProducts(searchParams: SearchParams) {
       countParams.push(`%${search}%`)
     }
 
-    const countResult = await sql.unsafe(countQuery, countParams)
-    const total = Number(countResult[0]?.total || 0)
+    const countResult = await sql.unsafe(
+      countQuery.replace(/\$(\d+)/g, (_, n) => {
+        const val = countParams[Number(n) - 1]
+        if (typeof val === "string") return `'${val.replace(/'/g, "''")}'`
+        return val
+      })
+    )
+    const total = Number(JSON.parse(JSON.stringify(countResult))[0]?.total || 0)
 
-    return {
-      products,
+    return serializeData({
+      products: products || [],
       pagination: {
         page,
         limit,
         total,
         pages: Math.ceil(total / limit),
       },
-    }
+    })
   } catch (error) {
     console.error("Error fetching products:", error)
-    return {
+    return serializeData({
       products: [],
       pagination: { page: 1, limit: 12, total: 0, pages: 0 },
-    }
+    })
   }
 }
 
 async function getCategories() {
   try {
-    const categories = await sql`
+    const categories = await sql.unsafe(`
       SELECT 
         c.*,
         COUNT(p.id) as product_count
@@ -96,8 +104,8 @@ async function getCategories() {
       WHERE c.is_active = true
       GROUP BY c.id
       ORDER BY c.name ASC
-    `
-    return categories
+    `)
+    return serializeData(categories)
   } catch (error) {
     console.error("Error fetching categories:", error)
     return []

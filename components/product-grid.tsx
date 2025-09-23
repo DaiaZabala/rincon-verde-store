@@ -8,7 +8,6 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
-
 interface Product {
   id: number
   name: string
@@ -86,7 +85,7 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
+        {products?.map((product) => (
           <Card key={product.id} className="group hover:shadow-lg transition-shadow">
             <CardHeader className="p-0">
               <div className="relative aspect-square">
@@ -178,3 +177,5 @@ export function ProductGrid({ products, pagination, searchParams }: ProductGridP
     </div>
   )
 }
+
+
