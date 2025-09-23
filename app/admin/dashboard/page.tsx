@@ -5,18 +5,19 @@ import { Package, ShoppingCart, Users, TrendingUp } from "lucide-react"
 async function getDashboardStats() {
   try {
     const [productsResult, ordersResult, customersResult, revenueResult] = await Promise.all([
-      sql`SELECT COUNT(*) as count FROM products WHERE is_active = true`,
-      sql`SELECT COUNT(*) as count FROM orders WHERE status != 'cancelled'`,
-      sql`SELECT COUNT(DISTINCT customer_email) as count FROM orders`,
-      sql`SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'completed' AND created_at >= CURRENT_DATE - INTERVAL '30 days'`,
+      sql.unsafe("SELECT COUNT(*) as count FROM products WHERE is_active = true"),
+      sql.unsafe("SELECT COUNT(*) as count FROM orders WHERE status != 'cancelled'"),
+      sql.unsafe("SELECT COUNT(DISTINCT customer_email) as count FROM orders"),
+      sql.unsafe("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'completed' AND created_at >= CURRENT_DATE - INTERVAL '30 days'")
     ])
 
-    return {
-      products: Number(productsResult[0]?.count || 0),
-      orders: Number(ordersResult[0]?.count || 0),
-      customers: Number(customersResult[0]?.count || 0),
-      revenue: Number(revenueResult[0]?.total || 0),
+    const results = {
+      products: Number(JSON.parse(JSON.stringify(productsResult))[0]?.count || 0),
+      orders: Number(JSON.parse(JSON.stringify(ordersResult))[0]?.count || 0),
+      customers: Number(JSON.parse(JSON.stringify(customersResult))[0]?.count || 0),
+      revenue: Number(JSON.parse(JSON.stringify(revenueResult))[0]?.total || 0),
     }
+    return results
   } catch (error) {
     console.error("Error fetching dashboard stats:", error)
     return {
@@ -30,7 +31,7 @@ async function getDashboardStats() {
 
 async function getRecentOrders() {
   try {
-    const orders = await sql`
+    const orders = await sql.unsafe(`
       SELECT 
         id,
         customer_name,
@@ -41,8 +42,8 @@ async function getRecentOrders() {
       FROM orders 
       ORDER BY created_at DESC 
       LIMIT 5
-    `
-    return orders
+    `)
+    return JSON.parse(JSON.stringify(orders))
   } catch (error) {
     console.error("Error fetching recent orders:", error)
     return []
