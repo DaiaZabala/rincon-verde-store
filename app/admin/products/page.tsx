@@ -8,15 +8,15 @@ import type { Product } from "@/lib/db"
 
 async function getProducts() {
   try {
-    const products = await sql.unsafe(`
+    const products = await sql`
       SELECT 
         p.*,
         c.name as category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       ORDER BY p.created_at DESC
-    `)
-    return JSON.parse(JSON.stringify(products)) as (Product & { category_name: string })[]
+    `
+    return products as (Product & { category_name: string })[]
   } catch (error) {
     console.error("Error fetching products:", error)
     return []

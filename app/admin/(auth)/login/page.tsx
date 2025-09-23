@@ -25,6 +25,8 @@ export default function AdminLoginPage() {
     setIsLoading(true)
     setError("")
 
+    console.log("[v0] Attempting login with:", { email })
+
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
@@ -35,14 +37,17 @@ export default function AdminLoginPage() {
       })
 
       const data = await response.json()
+      console.log("[v0] Login response:", { status: response.status, data })
 
       if (response.ok) {
+        console.log("[v0] Login successful, redirecting to dashboard")
         router.push("/admin/dashboard")
         router.refresh()
       } else {
         setError(data.error || "Error al iniciar sesión")
       }
     } catch (error) {
+      console.error("[v0] Login error:", error)
       setError("Error de conexión. Intenta nuevamente.")
     } finally {
       setIsLoading(false)
@@ -135,6 +140,12 @@ export default function AdminLoginPage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-4 text-center text-xs text-muted-foreground">
+          <p>Credenciales por defecto:</p>
+          <p>Email: admin@rinconverde.com</p>
+          <p>Contraseña: admin123</p>
+        </div>
       </div>
     </div>
   )

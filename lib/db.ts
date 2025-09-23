@@ -4,7 +4,9 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set")
 }
 
-export const sql = neon(process.env.DATABASE_URL)
+const sql = neon(process.env.DATABASE_URL)
+
+export { sql }
 
 // Database types
 export interface Product {
@@ -57,7 +59,11 @@ export interface OrderItem {
 export type User = {
   id: number
   email: string
+<<<<<<< HEAD
   name: string
+=======
+  password_hash: string
+>>>>>>> b7fa88bcf7a4b5877afc4a9d7c80f0fcda669551
   role: string
   password_hash: string
   created_at: Date

@@ -4,7 +4,6 @@ import { Footer } from "@/components/footer"
 import { ProductGrid } from "@/components/product-grid"
 import { ProductFilters } from "@/components/product-filters"
 import { Suspense } from "react"
-import { serializeData } from "@/lib/utils/serialize"
 
 interface SearchParams {
   category?: string
@@ -20,7 +19,7 @@ async function getProducts(searchParams: SearchParams) {
     const limit = 12
     const offset = (page - 1) * limit
 
-    let queryStr = `
+    let query = `
       SELECT 
         p.*,
         c.name as category_name,
@@ -32,16 +31,16 @@ async function getProducts(searchParams: SearchParams) {
     const params: any[] = []
 
     if (category) {
-      queryStr += ` AND c.slug = $${params.length + 1}`
+      query += ` AND c.slug = $${params.length + 1}`
       params.push(category)
     }
 
     if (search) {
-      queryStr += ` AND (p.name ILIKE $${params.length + 1} OR p.description ILIKE $${params.length + 1})`
+      query += ` AND (p.name ILIKE $${params.length + 1} OR p.description ILIKE $${params.length + 1})`
       params.push(`%${search}%`)
     }
 
-    queryStr += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
+    query += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
     params.push(limit, offset)
 
     const interpolatedQuery = queryStr.replace(/\$(\d+)/g, (_, n) => {
@@ -88,13 +87,13 @@ async function getProducts(searchParams: SearchParams) {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    }
   } catch (error) {
     console.error("Error fetching products:", error)
-    return serializeData({
+    return {
       products: [],
       pagination: { page: 1, limit: 12, total: 0, pages: 0 },
-    })
+    }
   }
 }
 

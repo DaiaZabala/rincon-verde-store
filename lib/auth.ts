@@ -40,28 +40,39 @@ export async function verifyToken(token: string) {
 // ─── AUTHENTICATE USER ─────────────────────────
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   try {
+    console.log("[v0] Authenticating user:", email) // Added debug logging
+
     const users = await sql`
       SELECT * FROM users
       WHERE email = ${email} AND role = 'admin'
       LIMIT 1
     `
 
+    console.log("[v0] Users found:", users.length) // Added debug logging
+
     if (users.length === 0) return null
 
     const user = users[0] as User
+<<<<<<< HEAD
 
     // ⚠️ Usamos password_hash, no password
     const isValid = await verifyPassword(password, user.password_hash)
+=======
+    const isValid = await verifyPassword(password, user.password_hash)
+
+    console.log("[v0] Password valid:", isValid) // Added debug logging
+>>>>>>> b7fa88bcf7a4b5877afc4a9d7c80f0fcda669551
 
     if (!isValid) return null
 
     return user
   } catch (error) {
-    console.error("Error authenticating user:", error)
+    console.error("Authentication error:", error)
     return null
   }
 }
 
+<<<<<<< HEAD
 // ─── GET CURRENT USER FROM COOKIE ─────────────
 export async function getCurrentUser() {
   const cookieStore = cookies()
@@ -89,8 +100,27 @@ export async function getCurrentUser() {
       email: user.email,
       role: user.role,
     }
+=======
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const cookieStore = cookies()
+    const token = cookieStore.get("auth-token")?.value
+
+    if (!token) return null
+
+    const payload = await verifyToken(token)
+    if (!payload) return null
+
+    const users = await sql`
+      SELECT * FROM users 
+      WHERE id = ${payload.userId} AND role = 'admin'
+      LIMIT 1
+    `
+
+    return users.length > 0 ? (users[0] as User) : null
+>>>>>>> b7fa88bcf7a4b5877afc4a9d7c80f0fcda669551
   } catch (error) {
-    console.error("Error getting current user:", error)
+    console.error("Get current user error:", error)
     return null
   }
 }

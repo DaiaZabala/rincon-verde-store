@@ -175,4 +175,7 @@ export function ProductGrid({ products = [], pagination, searchParams }: Product
     </div>
   )
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b7fa88bcf7a4b5877afc4a9d7c80f0fcda669551
