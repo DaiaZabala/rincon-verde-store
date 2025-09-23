@@ -6,12 +6,12 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json()
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Datos incompletos" }, { status: 400 })
+      return NextResponse.json({ error: "Email y contraseña son requeridos" }, { status: 400 })
     }
 
     const user = await authenticateUser(email, password)
 
-    if (!user || user.role !== "admin") {
+    if (!user) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 
@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     })
-
-    // TODO: Limpiar intentos fallidos al lograr un login exitoso
 
     response.cookies.set("auth-token", token, {
       httpOnly: true,

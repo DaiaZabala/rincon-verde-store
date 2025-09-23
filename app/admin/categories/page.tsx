@@ -8,7 +8,7 @@ import type { Category } from "@/lib/db"
 
 async function getCategories() {
   try {
-    const result = await sql.query(`
+    const categories = await sql`
       SELECT 
         c.*,
         COUNT(p.id) as product_count
@@ -16,8 +16,8 @@ async function getCategories() {
       LEFT JOIN products p ON c.id = p.category_id AND p.is_active = true
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `)
-    return result as (Category & { product_count: number })[]
+    `
+    return categories as (Category & { product_count: number })[]
   } catch (error) {
     console.error("Error fetching categories:", error)
     return []

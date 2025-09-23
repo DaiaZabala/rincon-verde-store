@@ -4,7 +4,6 @@ import { Footer } from "@/components/footer"
 import { ProductGrid } from "@/components/product-grid"
 import { ProductFilters } from "@/components/product-filters"
 import { Suspense } from "react"
-import { serializeData } from "@/lib/utils/serialize"
 
 interface SearchParams {
   category?: string
@@ -20,7 +19,7 @@ async function getProducts(searchParams: SearchParams) {
     const limit = 12
     const offset = (page - 1) * limit
 
-    let queryStr = `
+    let query = `
       SELECT 
         p.*,
         c.name as category_name,
@@ -32,26 +31,19 @@ async function getProducts(searchParams: SearchParams) {
     const params: any[] = []
 
     if (category) {
-      queryStr += ` AND c.slug = $${params.length + 1}`
+      query += ` AND c.slug = $${params.length + 1}`
       params.push(category)
     }
 
     if (search) {
-      queryStr += ` AND (p.name ILIKE $${params.length + 1} OR p.description ILIKE $${params.length + 1})`
+      query += ` AND (p.name ILIKE $${params.length + 1} OR p.description ILIKE $${params.length + 1})`
       params.push(`%${search}%`)
     }
 
-    queryStr += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
+    query += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
     params.push(limit, offset)
 
-    // Interpolate params into queryStr for sql.unsafe
-    const interpolatedQuery = queryStr.replace(/\$(\d+)/g, (_, n) => {
-      const val = params[Number(n) - 1]
-      if (typeof val === "string") return `'${val.replace(/'/g, "''")}'`
-      return val
-    })
-    const productsResult = await sql.unsafe(interpolatedQuery)
-    const products = JSON.parse(JSON.stringify(productsResult))
+    const products = await sql.unsafe(query, params)
 
     // Get total count
     let countQuery = `
@@ -72,36 +64,30 @@ async function getProducts(searchParams: SearchParams) {
       countParams.push(`%${search}%`)
     }
 
-    const countResult = await sql.unsafe(
-      countQuery.replace(/\$(\d+)/g, (_, n) => {
-        const val = countParams[Number(n) - 1]
-        if (typeof val === "string") return `'${val.replace(/'/g, "''")}'`
-        return val
-      })
-    )
-    const total = Number(JSON.parse(JSON.stringify(countResult))[0]?.total || 0)
+    const countResult = await sql.unsafe(countQuery, countParams)
+    const total = Number(countResult[0]?.total || 0)
 
-    return serializeData({
-      products: products || [],
+    return {
+      products,
       pagination: {
         page,
         limit,
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    }
   } catch (error) {
     console.error("Error fetching products:", error)
-    return serializeData({
+    return {
       products: [],
       pagination: { page: 1, limit: 12, total: 0, pages: 0 },
-    })
+    }
   }
 }
 
 async function getCategories() {
   try {
-    const categories = await sql.unsafe(`
+    const categories = await sql`
       SELECT 
         c.*,
         COUNT(p.id) as product_count
@@ -110,8 +96,8 @@ async function getCategories() {
       WHERE c.is_active = true
       GROUP BY c.id
       ORDER BY c.name ASC
-    `)
-    return serializeData(categories)
+    `
+    return categories
   } catch (error) {
     console.error("Error fetching categories:", error)
     return []

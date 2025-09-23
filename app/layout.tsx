@@ -22,12 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Suspense fallback={null}>
-          <CartProvider>
-            {children}
-            <Toaster />
-          </CartProvider>
-        </Suspense>
+        <CartProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+          <Toaster />
+        </CartProvider>
         <Analytics />
       </body>
     </html>
