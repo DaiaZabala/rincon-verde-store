@@ -1,0 +1,19 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Asegúrate de usar la variable correcta que configuraste en Vercel
+  url      = env("DATABASE_URL") // LÍNEA CORREGIDA
+}
+
+// Aquí debes definir tus modelos, por ejemplo
+model Usuario {
+  id     Int     @id @default(autoincrement())
+  email  String  @unique
+  nombre String
+}
