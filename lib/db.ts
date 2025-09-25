@@ -59,11 +59,7 @@ export interface OrderItem {
 export type User = {
   id: number
   email: string
-<<<<<<< HEAD
   name: string
-=======
-  password_hash: string
->>>>>>> b7fa88bcf7a4b5877afc4a9d7c80f0fcda669551
   role: string
   password_hash: string
   created_at: Date
