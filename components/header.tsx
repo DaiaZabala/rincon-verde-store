@@ -73,9 +73,12 @@ export function Header() {
           <div className="flex items-center space-x-2">
             <CartSheet />
 
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
+            {/* 🛑 ENLACE DE LOGIN AÑADIDO: Redirige a la página de administración/login */}
+            <Link href="/admin/login">
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
 
             {/* Mobile Menu */}
             <Sheet>
