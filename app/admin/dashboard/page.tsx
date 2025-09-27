@@ -2,12 +2,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
-import { AdminNavbar } from "@/components/AdminNavbar";
+// 🛑 CORRECCIÓN FINAL: La ruta de importación usa PascalCase (AdminNavbar)
+import { AdminNavbar } from "@/components/adminNavbar"; 
 
 // Importa tus funciones de obtención de datos desde la base de datos
 // import { getDashboardStats } from "@/lib/data/admin"; 
 
-// 🛑 Importante: Asegúrate de que este archivo cumpla con la sintaxis de exportación correcta.
 export default async function AdminDashboardPage() {
   // 1. Obtener datos (función ficticia)
   // const stats = await getDashboardStats(); 
@@ -22,7 +22,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* 🛑 COMPONENTE ADMIN NAVBAR AÑADIDO */}
+      {/* Componente Admin Navbar */}
       <AdminNavbar /> 
       
       <main className="flex-1 p-6 md:p-10">
@@ -80,10 +80,8 @@ export default async function AdminDashboardPage() {
             <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Gestión de Pedidos Recientes</CardTitle>
-                    {/* Aquí iría una tabla de los últimos pedidos */}
                 </CardHeader>
                 <CardContent>
-                    {/* <OrdersTable /> */}
                     <p className="text-muted-foreground">Implementar tabla de pedidos aquí...</p>
                 </CardContent>
             </Card>
@@ -93,14 +91,12 @@ export default async function AdminDashboardPage() {
                     <CardTitle>Productos en Stock Bajo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {/* Aquí iría una lista de productos que necesitan atención */}
                     <p className="text-muted-foreground">Implementar lista de productos...</p>
                 </CardContent>
             </Card>
         </div>
         
       </main>
-      {/* <Footer /> */} 
     </div>
   );
 }

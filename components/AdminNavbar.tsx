@@ -3,12 +3,32 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { LogOut, Package, ShoppingCart, Users, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function AdminNavbar() {
-  // En un proyecto real, aquí manejarías el estado de autenticación
-  // y la función de cierre de sesión (signOut)
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/admin/logout", {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        // Redirigir al inicio
+        router.push("/")     
+        router.refresh()     // refresca estado para middleware o checks de auth
+      } else {
+        console.error("Error al cerrar sesión:", response.statusText)
+        alert("Hubo un error al cerrar la sesión.")
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error)
+      alert("Error de conexión. Intenta nuevamente.")
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -46,9 +66,13 @@ export function AdminNavbar() {
             </Link>
           </nav>
 
-          {/* Acción de Cierre de Sesión */}
+          {/* Botón de Cierre de Sesión */}
           <div className="flex items-center">
-            <Button variant="ghost" className="text-red-500 hover:text-red-700">
+            <Button 
+              variant="ghost" 
+              className="text-red-500 hover:text-red-700"
+              onClick={handleLogout}
+            >
               <LogOut className="h-5 w-5 mr-2" />
               <span>Salir</span>
             </Button>
