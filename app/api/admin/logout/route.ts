@@ -1,18 +1,24 @@
-// /app/api/admin/routes.ts
+// app/api/admin/logout/route.ts
 import { NextResponse } from "next/server"
 
-export async function DELETE(req: Request) {
-  const url = new URL(req.url)
-  if (url.pathname.endsWith("/logout")) {
-    const response = NextResponse.redirect("http://localhost:3000/")
-    response.cookies.set("auth_session_token", "", {
+export async function POST() {
+  try {
+    // Crear la respuesta JSON
+    const response = NextResponse.json({ success: true, message: "Sesión cerrada" })
+
+    // Borrar la cookie de sesión
+    response.cookies.set("auth-token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      expires: new Date(0),
-      path: "/",
+      sameSite: "lax",
+      maxAge: 0, // Esto borra la cookie
+      path: "/", // Importante: debe coincidir con la cookie del login
     })
-    return response
-  }
 
-  return NextResponse.json({ error: "Ruta no encontrada" }, { status: 404 })
+    return response
+  } catch (error) {
+    console.error("Error al cerrar sesión:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+  }
 }
+

@@ -10,25 +10,24 @@ import { Button } from "@/components/ui/button"
 export function AdminNavbar() {
   const router = useRouter()
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch("/api/admin/logout", {
-        method: "DELETE",
-      })
+ const handleLogout = async () => {
+  try {
+    const response = await fetch("/api/admin/logout", {
+      method: "POST", // cambiar a POST
+    })
 
-      if (response.ok) {
-        // Redirigir al inicio
-        router.push("/")     
-        router.refresh()     // refresca estado para middleware o checks de auth
-      } else {
-        console.error("Error al cerrar sesión:", response.statusText)
-        alert("Hubo un error al cerrar la sesión.")
-      }
-    } catch (error) {
-      console.error("Error de conexión:", error)
-      alert("Error de conexión. Intenta nuevamente.")
+    if (response.ok) {
+      router.push("/admin/login") // mejor ir al login que al /
+    } else {
+      console.error("Error al cerrar sesión:", response.statusText)
+      alert("Hubo un error al cerrar la sesión.")
     }
+  } catch (error) {
+    console.error("Error de conexión:", error)
+    alert("Error de conexión. Intenta nuevamente.")
   }
+}
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
