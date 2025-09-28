@@ -12,8 +12,45 @@ datasource db {
 }
 
 // Aquí debes definir tus modelos, por ejemplo
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      Usuario  @relation(fields: [userId], references: [id])
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
 model Usuario {
-  id     Int     @id @default(autoincrement())
-  email  String  @unique
-  nombre String
+  id       Int       @id @default(autoincrement())
+  email    String    @unique
+  nombre   String
+  sessions Session[]
+}
+
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  slug        String?   @unique
+  image_url   String?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id             Int       @id @default(autoincrement())
+  name           String
+  description    String?
+  price          Float
+  image_url      String?
+  stock_quantity Int       @default(0)
+  category       Category? @relation(fields: [categoryId], references: [id])
+  categoryId     Int?
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
 }

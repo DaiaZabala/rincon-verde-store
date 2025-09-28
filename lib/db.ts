@@ -1,10 +1,10 @@
 import { neon } from "@neondatabase/serverless"
 import { prisma } from "@/lib/prisma" 
 
-if (!process.env.DATABASE_URL) {
+
+if (!process.env.DATABASE_URL) { 
   throw new Error("DATABASE_URL is not set")
 }
-
 const sql = neon(process.env.DATABASE_URL)
 
 export { sql }
@@ -66,16 +66,4 @@ export type User = {
   created_at: Date
   updated_at: Date
   is_active?: boolean
-}
-
-export async function getSessionByToken(token: string) {
-  return await prisma.session.findUnique({
-    where: { token },
-  })
-}
-
-export async function deleteSessionByToken(token: string) {
-  return await prisma.session.deleteMany({
-    where: { token },
-  })
 }
