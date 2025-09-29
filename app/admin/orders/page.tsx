@@ -1,11 +1,11 @@
 // app/admin/orders/page.tsx
 
-import { adminNavbar } from "@/components/adminnavbar"; 
+import { AdminNavbar } from "@/components/adminnavbar"; 
 
 export default function OrdersListPage() {
   return (
     <div className="min-h-screen">
-      <adminNavbar />
+      <AdminNavbar />
       <main className="p-6 md:p-10">
         <h2 className="text-2xl font-bold mb-6">Lista de Pedidos</h2>
         

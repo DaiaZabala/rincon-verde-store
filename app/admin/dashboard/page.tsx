@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
-import { adminNavbar } from "@/components/adminnavbar"; 
+import { AdminNavbar } from "@/components/adminnavbar"; 
 
 // Importa tus funciones de obtención de datos desde la base de datos
 // import { getDashboardStats } from "@/lib/data/admin"; 
@@ -22,7 +22,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Componente Admin Navbar */}
-      <adminNavbar /> 
+      <AdminNavbar /> 
       
       <main className="flex-1 p-6 md:p-10">
         <h1 className="text-3xl font-bold mb-8">Dashboard de Administración</h1>
