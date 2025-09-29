@@ -1,11 +1,10 @@
-// /components/admin-navbar.tsx
-
 "use client"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { LogOut, Package, ShoppingCart, Users, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useState } from "react";
 
 export function AdminNavbar() {
   const router = useRouter()
