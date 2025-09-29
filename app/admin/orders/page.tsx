@@ -4,6 +4,7 @@
 // Esto asegura que Vercel encuentre el componente, ya que el archivo está a tres niveles de profundidad.
 import { AdminNavbar } from "../../../components/adminnavbar"; 
 
+
 export default function OrdersListPage() {
   return (
     <div className="min-h-screen">
