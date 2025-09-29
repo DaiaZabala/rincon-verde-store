@@ -6,7 +6,7 @@ import { Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react
 import Link from "next/link"
 import Image from "next/image"
 import type { Product } from "@/lib/db"
-import { AdminNavbar } from "@/components/adminnavbar"
+import { adminNavbar } from "@/components/adminnavbar"
 
 // Número de productos por página
 const PRODUCTS_PER_PAGE = 20
@@ -36,7 +36,7 @@ export default async function ProductsPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <AdminNavbar/>
+      <adminNavbar/>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Productos</h1>

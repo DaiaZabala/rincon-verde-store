@@ -6,7 +6,7 @@ import { LogOut, Package, ShoppingCart, Users, LayoutDashboard } from "lucide-re
 import { Button } from "@/components/ui/button"
 import { useState } from "react";
 
-export function AdminNavbar() {
+export function adminNavbar() {
   const router = useRouter()
 
  const handleLogout = async () => {
