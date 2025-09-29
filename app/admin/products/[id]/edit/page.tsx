@@ -2,7 +2,7 @@
 
 import { sql } from "@/lib/db"
 import EditProductForm from "./EditProductForm"
-import { adminNavbar } from "@/components/adminnavbar"
+import { AdminNavbar } from "@/components/adminnavbar"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -63,7 +63,7 @@ export default async function EditProductPage({ params }: { params: Params }) {
 
   return (
     <div className="p-4 space-y-6">
-      <adminNavbar />
+      <AdminNavbar />
 
       {/* Encabezado con botón de regreso */}
       <div className="flex justify-between items-center">
