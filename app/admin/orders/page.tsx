@@ -1,6 +1,6 @@
 // app/admin/orders/page.tsx
 
-import { AdminNavbar } from "@/components/adminNavbar"; 
+import { AdminNavbar } from "@/components/adminnavbar"; 
 
 export default function OrdersListPage() {
   return (

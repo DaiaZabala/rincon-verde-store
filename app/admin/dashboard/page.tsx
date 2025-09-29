@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
-import { AdminNavbar } from "@/components/adminNavbar"; 
+import { AdminNavbar } from "@/components/adminnavbar"; 
 
 // Importa tus funciones de obtención de datos desde la base de datos
 // import { getDashboardStats } from "@/lib/data/admin"; 

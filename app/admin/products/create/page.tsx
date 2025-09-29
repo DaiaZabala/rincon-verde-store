@@ -1,6 +1,6 @@
 // app/admin/products/create/page.tsx
 
-import { AdminNavbar } from "@/components/adminNavbar"; 
+import { AdminNavbar } from "@/components/adminnavbar"; 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function CreateProductPage() {

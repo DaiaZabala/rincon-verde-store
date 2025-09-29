@@ -6,7 +6,7 @@ import { Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react
 import Link from "next/link"
 import Image from "next/image"
 import type { Product } from "@/lib/db"
-import { AdminNavbar } from "@/components/adminNavbar"
+import { AdminNavbar } from "@/components/adminnavbar"
 
 // Número de productos por página
 const PRODUCTS_PER_PAGE = 20

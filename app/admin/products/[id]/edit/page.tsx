@@ -2,7 +2,7 @@
 
 import { sql } from "@/lib/db"
 import EditProductForm from "./EditProductForm"
-import { AdminNavbar } from "@/components/adminNavbar"
+import { AdminNavbar } from "@/components/adminnavbar"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
