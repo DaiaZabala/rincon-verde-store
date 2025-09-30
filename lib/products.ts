@@ -53,7 +53,7 @@ export async function getProducts(searchParams: SearchParams): Promise<GetProduc
     
     // 2. Composición de WHERE (Se usan AND y concatenación de Template Tags)
     if (category) {
-        whereClause = sql`${whereClause} AND T1.category_id = ${category}`
+        whereClause = sql`${whereClause} AND T1.category_name = ${category}`
     }
     
     if (search) {
@@ -174,3 +174,5 @@ export async function deleteProduct(id: string) {
     ` as Product[]
     return serializeData(result[0]) as Product
 }
+
+
