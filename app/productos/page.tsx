@@ -1,21 +1,21 @@
 // app/productos/page.tsx
-
 import { sql, serializeData, Product as DBProduct } from "@/lib/db";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
+import AddToCartButton from "@/components/AddToCartButton"; 
 
-// Forzar renderizado dinámico
+// Forzar renderizado dinámico (Server Component)
 export const dynamic = "force-dynamic";
 
 // Tipo para frontend
 interface Product extends Omit<DBProduct, "category_id" | "stock_quantity" | "is_active" | "created_at" | "updated_at"> {
   category_name: string;
 }
+
 
 interface SearchParams {
   category?: string;
@@ -52,30 +52,29 @@ const PaginationComponent = ({
 
   return (
     <div className="flex justify-center items-center space-x-4 mt-6">
-      <Link
+      <a
         href={page > 1 ? createLink(page - 1) : "#"}
         className={`px-4 py-2 border rounded-md transition-colors ${
           page <= 1 ? "opacity-50 cursor-not-allowed bg-gray-100" : "hover:bg-primary hover:text-white"
         }`}
       >
         Anterior
-      </Link>
+      </a>
       <span className="text-lg font-semibold">{page} de {pages}</span>
-      <Link
+      <a
         href={page < pages ? createLink(page + 1) : "#"}
         className={`px-4 py-2 border rounded-md transition-colors ${
           page >= pages ? "opacity-50 cursor-not-allowed bg-gray-100" : "hover:bg-primary hover:text-white"
         }`}
       >
         Siguiente
-      </Link>
+      </a>
     </div>
   );
 };
 
 // --- Obtener productos desde DB ---
 async function getProducts(searchParams: SearchParams): Promise<ProductsResponse> {
-  // CORRECCIÓN FINAL: Todas las variables necesarias fuera del try para scope global
   const category = searchParams.category;
   const search = searchParams.search;
   const page = Number(searchParams.page || "1");
@@ -83,17 +82,14 @@ async function getProducts(searchParams: SearchParams): Promise<ProductsResponse
   const offset = (page - 1) * limit;
 
   try {
-    // Inicializamos la base de la consulta (parte FROM y WHERE fijos)
     let baseQuery = `
       FROM products p
       JOIN categories c ON p.category_id = c.id
       WHERE p.is_active = TRUE
     `;
-
     const params: any[] = [];
     let paramIndex = 1;
 
-    // APLICAMOS FILTROS A LA baseQuery
     if (category) {
       baseQuery += ` AND c.slug = $${paramIndex}`;
       params.push(category);
@@ -106,25 +102,16 @@ async function getProducts(searchParams: SearchParams): Promise<ProductsResponse
       paramIndex++;
     }
 
-    // CONSULTA DE CONTEO (Utiliza solo los parámetros de filtro)
-    const totalQuery = `
-      SELECT COUNT(p.id) as count
-      ${baseQuery}
-    `;
-    // Los parámetros de conteo son todos los acumulados hasta ahora (filtros)
-    const totalParams = params.slice(0, paramIndex - 1); 
+    const totalQuery = `SELECT COUNT(p.id) as count ${baseQuery}`;
+    const totalParams = params.slice(0, paramIndex - 1);
 
-    // CONSULTA PRINCIPAL DE PRODUCTOS (Añade LIMIT/OFFSET)
     const query = `
       SELECT p.id, p.name, p.description, p.price, p.image_url, c.name as category_name
       ${baseQuery}
       ORDER BY p.id ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-
-    // Añadimos LIMIT y OFFSET a los parámetros para la consulta principal
     params.push(limit, offset);
 
-    // Ejecutamos ambas consultas en paralelo
     const [totalResult, productsResult] = await Promise.all([
       (sql as any).query(totalQuery, totalParams),
       (sql as any).query(query, params),
@@ -144,16 +131,13 @@ async function getProducts(searchParams: SearchParams): Promise<ProductsResponse
     };
   } catch (error) {
     console.error("Error fetching products:", error);
-    // 'limit' está definido aquí gracias a la corrección
     return { products: [], pagination: { page: 1, limit, total: 0, pages: 0 } };
   }
 }
 
-// --- Página de Productos ---
+// --- Página ---
 export default async function ProductosPage({ searchParams: rawSearchParams }: { searchParams: SearchParams }) {
-  // Aseguramos que searchParams se resuelve
   const searchParams = await Promise.resolve(rawSearchParams);
-
   const { products, pagination } = await getProducts(searchParams);
 
   return (
@@ -161,9 +145,7 @@ export default async function ProductosPage({ searchParams: rawSearchParams }: {
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-4">Productos</h1>
-        <p className="text-muted-foreground mb-8">
-          Explora nuestra selección de productos
-        </p>
+        <p className="text-muted-foreground mb-8">Explora nuestra selección de productos</p>
 
         {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -191,6 +173,9 @@ export default async function ProductosPage({ searchParams: rawSearchParams }: {
                       <DollarSign className="h-5 w-5" />
                       <span>{Number(product.price).toFixed(2)}</span>
                     </div>
+                    {/* BOTÓN AGREGAR AL CARRITO */}
+                    <AddToCartButton product={product} />
+
                   </div>
                 </CardContent>
               </Card>
