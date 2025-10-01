@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
+// ******************************************************
+// LÓGICA DE PERSISTENCIA SIMULADA INTEGRADA (PARA EVITAR ERRORES DE IMPORTACIÓN)
+// ******************************************************
+
 // Define la clave de sessionStorage para simular la base de datos de Neon
 const MOCK_DB_KEY = "neon_cart_data";
 
 // --- Definiciones de Tipos de Carrito ---
-// NOTA: Esta interfaz se define aquí ya que la importación externa estaba fallando.
 interface CartItem {
     id: number;
     name: string;
@@ -18,15 +21,11 @@ interface CartItem {
     quantity: number;
 }
 
-// --- Funciones de Persistencia Simuladas Integradas (Reemplazo para tu API de Servidor) ---
-
 /**
  * Simula la carga del carrito del usuario desde una API (usa sessionStorage).
- * En la vida real, esta función haría fetch a una ruta de Next.js que ejecuta la consulta Neon.
  */
 const loadCartFromAPI = (): Promise<CartItem[]> => {
     return new Promise((resolve) => {
-        // Simula la latencia de red
         setTimeout(() => {
             try {
                 const storedCart = sessionStorage.getItem(MOCK_DB_KEY);
@@ -34,7 +33,7 @@ const loadCartFromAPI = (): Promise<CartItem[]> => {
                 resolve(cart as CartItem[]);
             } catch (e) {
                 console.error("Error al cargar carrito mock:", e);
-                resolve([]); // Devuelve un carrito vacío en caso de error
+                resolve([]);
             }
         }, 300);
     });
@@ -42,11 +41,9 @@ const loadCartFromAPI = (): Promise<CartItem[]> => {
 
 /**
  * Simula guardar el carrito actualizado en una API (usa sessionStorage).
- * En la vida real, esta función haría fetch a una ruta de Next.js que actualiza la base de datos Neon.
  */
 const saveCartToAPI = (cart: CartItem[]): Promise<void> => {
     return new Promise((resolve) => {
-        // Simula la latencia de red
         setTimeout(() => {
             try {
                 sessionStorage.setItem(MOCK_DB_KEY, JSON.stringify(cart));
@@ -59,6 +56,10 @@ const saveCartToAPI = (cart: CartItem[]): Promise<void> => {
         }, 300);
     });
 };
+
+// ******************************************************
+// FIN DE LÓGICA DE PERSISTENCIA
+// ******************************************************
 
 
 // Definición de tipos para las props del botón
@@ -123,13 +124,15 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
   };
 
   return (
-    <Button
+<Button
       onClick={handleAddToCart}
       disabled={adding}
-      className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
+      // CAMBIO: w-full se reemplaza por w-fit o w-40 para un ancho fijo
+      className="w-fit bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
     >
       <ShoppingCart className="mr-2 h-4 w-4" />
-      {adding ? "Agregando..." : "Agregar al carrito"}
-    </Button>
+      {adding ? "Agregando..." : "Agregar"}
+</Button>
+
   );
 }
