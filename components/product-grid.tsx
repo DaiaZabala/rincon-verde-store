@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Star } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCart } from "@/lib/cart-context"
+import { useCart } from "@/components/context/CartContext"
 import { useToast } from "@/hooks/use-toast"
 
 interface Product {

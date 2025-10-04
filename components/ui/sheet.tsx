@@ -44,12 +44,14 @@ function SheetOverlay({
   )
 }
 
+// ⬅️ FUNCIÓN CORREGIDA para compatibilidad de accesibilidad (A11y) con Radix UI
 function SheetContent({
   className,
   children,
   side = 'right',
+  // Se utiliza ComponentPropsWithoutRef para la compatibilidad con las refs y a11y de Radix.
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
+}: React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & { 
   side?: 'top' | 'right' | 'bottom' | 'left'
 }) {
   return (
