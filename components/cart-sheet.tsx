@@ -1,135 +1,156 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation"
+import Link from "next/link"   // 👈 IMPORTANTE: agregá esta línea
+import { ShoppingCart, Minus, Plus, Trash } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
 
-// Define la clave de sessionStorage para simular la base de datos de Neon
-const MOCK_DB_KEY = "neon_cart_data";
+import { useCart, CartItem } from "@/components/context/CartContext"
 
-// --- Definiciones de Tipos de Carrito ---
-// NOTA: Esta interfaz se define aquí ya que la importación externa estaba fallando.
-interface CartItem {
-    id: number;
-    name: string;
-    price: number;
-    image_url: string;
-    stock_quantity?: number;
-    quantity: number;
-}
+export default function CartSheet() {
+  const {
+    cart: items,
+    loadCart,
+    removeFromCart,
+    updateCartItemQuantity,
+  } = useCart()
 
-// --- Funciones de Persistencia Simuladas Integradas (Reemplazo para tu API de Servidor) ---
+  const router = useRouter()
 
-/**
- * Simula la carga del carrito del usuario desde una API (usa sessionStorage).
- * En la vida real, esta función haría fetch a una ruta de Next.js que ejecuta la consulta Neon.
- */
-const loadCartFromAPI = (): Promise<CartItem[]> => {
-    return new Promise((resolve) => {
-        // Simula la latencia de red
-        setTimeout(() => {
-            try {
-                const storedCart = sessionStorage.getItem(MOCK_DB_KEY);
-                const cart = storedCart ? JSON.parse(storedCart) : [];
-                resolve(cart as CartItem[]);
-            } catch (e) {
-                console.error("Error al cargar carrito mock:", e);
-                resolve([]); // Devuelve un carrito vacío en caso de error
-            }
-        }, 300);
-    });
-};
+  // ✅ Calculamos el total
+  const total = items.reduce(
+    (acc, i) => acc + (i.product?.price || 0) * i.quantity,
+    0
+  )
 
-/**
- * Simula guardar el carrito actualizado en una API (usa sessionStorage).
- * En la vida real, esta función haría fetch a una ruta de Next.js que actualiza la base de datos Neon.
- */
-const saveCartToAPI = (cart: CartItem[]): Promise<void> => {
-    return new Promise((resolve) => {
-        // Simula la latencia de red
-        setTimeout(() => {
-            try {
-                sessionStorage.setItem(MOCK_DB_KEY, JSON.stringify(cart));
-                console.log("Carrito mock guardado:", cart);
-                resolve();
-            } catch (e) {
-                console.error("Error al guardar carrito mock:", e);
-                resolve();
-            }
-        }, 300);
-    });
-};
+  // ✅ Funciones de cantidad
+  const increaseQty = (item: CartItem) => {
+    updateCartItemQuantity(item.id, item.quantity + 1)
+  }
 
-
-// Definición de tipos para las props del botón
-type AddToCartButtonProps = {
-  product: {
-    id: number;
-    name: string;
-    price: number;
-    image_url: string;
-    stock_quantity?: number;
-  };
-};
-
-export default function AddToCartButton({ product }: AddToCartButtonProps) {
-  const [adding, setAdding] = useState(false);
-
-  // Esta función simula la llamada a tu API de servidor que interactuaría con Neon.
-  const handleAddToCart = async () => {
-    setAdding(true);
-
-    try {
-      // 1. Cargar el estado actual del carrito (simulado con sessionStorage)
-      const cart: CartItem[] = await loadCartFromAPI();
-      
-      // 2. Buscar si el producto ya está en el carrito
-      const existingItem = cart.find((item) => item.id === product.id);
-      let newCart: CartItem[];
-
-      if (existingItem) {
-        // Si ya existe, incrementar cantidad (respetando stock)
-        const newQuantity =
-          existingItem.quantity + 1 <= (product.stock_quantity ?? Infinity)
-            ? existingItem.quantity + 1
-            : existingItem.quantity;
-        
-        newCart = cart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
-      } else {
-        // Si no existe, agregar el producto con cantidad 1
-        newCart = [...cart, { 
-          // Aseguramos que la estructura del producto incluya todos los campos de CartItem
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image_url: product.image_url,
-          stock_quantity: product.stock_quantity,
-          quantity: 1 
-        }];
-      }
-
-      // 3. Guardar el carrito actualizado usando la función mock
-      await saveCartToAPI(newCart);
-
-    } catch (error) {
-      console.error("Error al agregar/guardar producto en el carrito (API simulada):", error);
-    } finally {
-      setAdding(false);
+  const decreaseQty = (item: CartItem) => {
+    if (item.quantity > 1) {
+      updateCartItemQuantity(item.id, item.quantity - 1)
+    } else {
+      removeFromCart(item.id)
     }
-  };
+  }
+
+  const removeItemFromContext = (id: number) => {
+    removeFromCart(id)
+  }
+
+  // ✅ Generar mensaje de WhatsApp
+  const handleWhatsApp = () => {
+    const msg = items
+      .map(
+        (i) =>
+          `${i.product?.name} x${i.quantity} - $${(
+            (i.product?.price || 0) * i.quantity
+          ).toFixed(2)}`
+      )
+      .join("%0A")
+    const totalMsg = `Total: $${total.toFixed(2)}`
+    const url = `https://wa.me/?text=🛒 Pedido:%0A${msg}%0A${totalMsg}`
+    window.open(url, "_blank")
+  }
 
   return (
-    <Button
-      onClick={handleAddToCart}
-      disabled={adding}
-      className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
-    >
-      <ShoppingCart className="mr-2 h-4 w-4" />
-      {adding ? "Agregando..." : "Agregar al carrito"}
-    </Button>
-  );
+    <Sheet onOpenChange={(open) => open && loadCart()}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          {items.length > 0 && (
+            <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 text-xs font-bold text-white flex items-center justify-center -mt-1 -mr-1">
+              {items.reduce((acc, i) => acc + i.quantity, 0)}
+            </span>
+          )}
+          <ShoppingCart className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+
+      <SheetContent side="right" className="flex flex-col w-full sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle className="text-2xl font-bold text-primary">
+            Tu Carrito
+          </SheetTitle>
+          <SheetDescription>
+            {items.length} {items.length === 1 ? "artículo" : "artículos"} en tu
+            carrito.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto py-6 space-y-4">
+          {items.length > 0 ? (
+            items.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between border-b pb-2"
+              >
+                <div>
+                  <p className="font-semibold">{item.product?.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    ${item.product?.price?.toFixed(2)} x {item.quantity}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decreaseQty(item)}
+                    disabled={item.quantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span>{item.quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => increaseQty(item)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => removeItemFromContext(item.id)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 text-center">Tu carrito está vacío</p>
+          )}
+        </div>
+
+        <div className="pt-4 border-t space-y-3">
+          {items.length > 0 && (
+            <p className="font-semibold text-right">
+              Total: ${total.toFixed(2)}
+            </p>
+          )}
+          <Button
+            className="w-full bg-green-600 hover:bg-green-700"
+            onClick={handleWhatsApp}
+          >
+            Enviar Pedido por WhatsApp
+          </Button>
+
+          {/* 👇 Texto linkeado en lugar de botón */}
+          <p className="text-center text-sm text-blue-600 hover:underline">
+            <Link href="/productos">Seguir comprando</Link>
+          </p>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
 }
