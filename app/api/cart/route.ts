@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { fetchCart as sharedFetchCart, invalidateCartCache } from './shared'
 
 // 🔹 Obtener carrito completo
 export async function fetchCart() {
@@ -97,10 +98,8 @@ export async function POST(req: Request) {
       DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity
     `
 
-    const cart = await fetchCart()
-    // invalidar/actualizar cache
-    __cachedCart = cart
-    __cachedCartAt = Date.now()
+    invalidateCartCache()
+    const cart = await sharedFetchCart()
     return NextResponse.json(cart, { status: 201 })
   } catch (error) {
     console.error("DB Error al agregar producto:", error)
@@ -136,9 +135,8 @@ export async function PUT(req: Request) {
         WHERE id = ${id}
       `
     }
-    const cart = await fetchCart()
-    __cachedCart = cart
-    __cachedCartAt = Date.now()
+    invalidateCartCache()
+    const cart = await sharedFetchCart()
     return NextResponse.json(cart, { status: 200 })
   } catch (error) {
     console.error("DB Error al actualizar item:", error)
@@ -151,9 +149,8 @@ export async function DELETE(req: Request) {
   try {
     const { id } = await req.json()
     await sql`DELETE FROM cart_items WHERE id = ${id}`
-    const cart = await fetchCart()
-    __cachedCart = cart
-    __cachedCartAt = Date.now()
+    invalidateCartCache()
+    const cart = await sharedFetchCart()
     return NextResponse.json(cart, { status: 200 })
   } catch (error) {
     console.error("DB Error al eliminar item:", error)

@@ -4,11 +4,23 @@ import { sql } from "@/lib/db"
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
     const id = Number(params.id)
-    await sql`DELETE FROM products WHERE id = ${id}`
+    // Soft delete: marcar como inactivo para mantener historial
+    await sql`UPDATE products SET is_active = false WHERE id = ${id}`
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    console.error("Error deleting product:", err)
+    console.error("Error soft-deleting product:", err)
     return NextResponse.json({ error: err?.message || "Error interno" }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const id = Number(params.id)
+    await sql`UPDATE products SET is_active = true WHERE id = ${id}`
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('Error restoring product:', err)
+    return NextResponse.json({ error: err?.message || 'Error interno' }, { status: 500 })
   }
 }
 

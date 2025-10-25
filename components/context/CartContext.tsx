@@ -116,14 +116,21 @@ export const CartProvider = ({ children, initialCart }: { children: React.ReactN
 
   const clearCart = useCallback(async () => {
     try {
+      // Optimistic update for snappy UX
+      setCart([])
+      toast({ title: "Vaciando carrito", description: "El carrito se está vaciando..." })
+
       const res = await fetch("/api/cart/clear", { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        toast({ title: "Error", description: body?.error || "No se pudo vaciar el carrito" });
+        toast({ title: "Error", description: body?.error || "No se pudo vaciar el carrito", variant: 'destructive' });
+        // refetch to restore server state
+        const fallback = await fetch('/api/cart').then(r => r.json()).catch(() => [])
+        setCart(Array.isArray(fallback) ? fallback : [])
         throw new Error(body?.error || "Error al vaciar carrito");
       }
+      // Server returned updated cart; ensure sync
       const updated = await res.json().catch(() => [])
-      // if server returned empty cart, set to []
       setCart(Array.isArray(updated) ? updated : [])
       toast({ title: "Carrito vaciado", description: "Todos los artículos han sido eliminados" })
     } catch (err: any) {

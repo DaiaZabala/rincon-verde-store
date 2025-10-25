@@ -3,7 +3,7 @@
 
 // 🛑 CORRECCIÓN VERCEL: Cambiamos el alias (@/) por la ruta relativa (../../../../).
 // Este archivo está a cuatro niveles de profundidad (app/admin/productos/crear) de la raíz.
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AdminNavbar } from "../../../../components/adminnavbar"
 import { Card, CardHeader, CardTitle, CardContent } from "../../../../components/ui/card"
@@ -19,6 +19,22 @@ export default function CreateProductPage() {
 	const [stock, setStock] = useState("")
 	const [imageUrl, setImageUrl] = useState("")
 	const [categoryId, setCategoryId] = useState("")
+	const [categories, setCategories] = useState<Array<any>>([])
+	const [catsLoading, setCatsLoading] = useState(false)
+
+	useEffect(() => {
+		let mounted = true
+		setCatsLoading(true)
+		fetch('/api/categories')
+			.then((r) => r.json())
+			.then((data) => {
+				if (!mounted) return
+				setCategories(data.categories || [])
+			})
+			.catch((e) => console.error('Error cargando categorías', e))
+			.finally(() => mounted && setCatsLoading(false))
+		return () => { mounted = false }
+	}, [])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
@@ -89,8 +105,13 @@ export default function CreateProductPage() {
 									<Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} />
 								</div>
 								<div>
-									<label className="block text-sm font-medium mb-1">Categoria ID (opcional)</label>
-									<Input type="number" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
+									<label className="block text-sm font-medium mb-1">Categoría (opcional)</label>
+									<select aria-label="Categoría" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="block w-full rounded-md border px-2 py-1">
+										<option value="">Sin categoría</option>
+										{categories.map((c) => (
+											<option key={c.id} value={c.id}>{c.name}</option>
+										))}
+									</select>
 								</div>
 							</div>
 

@@ -8,6 +8,7 @@ import Image from "next/image"
 import type { Product } from "@/lib/db"
 import { AdminNavbar } from "@/components/adminnavbar"
 import DeleteProductButton from "@/components/admin/DeleteProductButton"
+import RestoreProductButton from "@/components/admin/RestoreProductButton"
 
 // Número de productos por página
 const PRODUCTS_PER_PAGE = 20
@@ -124,7 +125,17 @@ export default async function ProductsPage() {
                       <Edit className="mr-1 h-3 w-3" /> Editar
                     </Link>
                   </Button>
-                  <DeleteProductButton id={product.id} />
+                  {product.is_active ? (
+                    <DeleteProductButton id={product.id} />
+                  ) : (
+                    <div className="flex-1">
+                      {/* Mostrar botón de restaurar para productos inactivos */}
+                      <Link href={`/admin/products/${product.id}`} className="hidden" />
+                      <div className="flex gap-1">
+                        <RestoreProductButton id={product.id} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

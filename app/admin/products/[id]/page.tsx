@@ -2,6 +2,9 @@ import { sql } from "@/lib/db"
 import { AdminNavbar } from "@/components/adminnavbar"
 import Image from "next/image"
 import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import DeleteProductButton from "@/components/admin/DeleteProductButton"
+import { Button } from "@/components/ui/button"
 
 type Props = { params: { id: string } }
 
@@ -30,24 +33,45 @@ export default async function ProductView({ params }: Props) {
     <div className="p-6">
       <AdminNavbar />
       <main className="max-w-3xl mx-auto">
-        <div className="flex gap-6 items-start">
-          <div className="w-48 h-48 relative rounded-lg overflow-hidden">
-            <Image src={product.image_url || '/placeholder.jpg'} alt={product.name} fill style={{ objectFit: 'cover' }} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">{product.name}</h1>
-            <p className="text-muted-foreground">{product.description}</p>
-            <div className="mt-4">
-              <p>Precio: ${Number(product.price).toFixed(2)}</p>
-              <p>Stock: {product.stock_quantity}</p>
-              <p>Categoría: {product.category_name || 'Sin categoría'}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">{product.name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-6 items-start">
+              <div className="w-48 h-48 relative rounded-lg overflow-hidden">
+                <Image src={product.image_url || '/placeholder.jpg'} alt={product.name} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-muted-foreground mb-4">{product.description}</p>
+                <div className="grid grid-cols-2 gap-4 max-w-md">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Precio</p>
+                    <p className="font-bold">${Number(product.price).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Stock</p>
+                    <p className="font-bold">{product.stock_quantity}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground">Categoría</p>
+                    <p>{product.category_name || 'Sin categoría'}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-2">
+                  <Button asChild>
+                    <Link href="/admin/products">Volver</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href={`/admin/products/${product.id}/edit`}>Editar</Link>
+                  </Button>
+                  <DeleteProductButton id={product.id} />
+                </div>
+              </div>
             </div>
-            <div className="mt-6 flex gap-2">
-              <Link href="/admin/products" className="btn">Volver</Link>
-              <Link href={`/admin/products/${product.id}/edit`} className="btn">Editar</Link>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )
