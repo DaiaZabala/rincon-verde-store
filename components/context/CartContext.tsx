@@ -1,162 +1,178 @@
-"use client"
+"use client";
 
-import {
-  createContext,
-  useState,
-  useEffect,
-  ReactNode,
-  useContext,
-  useCallback,
-} from "react"
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 export type CartItem = {
-  id: number
-  product_id: number
-  quantity: number
+  id: number;
+  quantity: number;
   product?: {
-    id: number
-    name: string
-    price: number
-    image_url: string
-  }
-}
+    id: number;
+    name: string;
+    price: number;
+    image_url?: string;
+  };
+};
 
 type CartContextType = {
-  cart: CartItem[]
-  loadCart: () => Promise<void>
-  addToCart: (productId: number) => Promise<void>
-  updateCartItemQuantity: (cartItemId: number, quantity: number) => Promise<void>
-  removeFromCart: (cartItemId: number) => Promise<void>
-  isLoading: boolean
-  error: string | null
-}
+  cart: CartItem[];
+  isLoading: boolean;
+  error: string | null;
+  loadCart: () => void;
+  addToCart: (productId: number) => void;
+  updateCartItemQuantity: (id: number, quantity: number) => void;
+  removeFromCart: (id: number) => void;
+  clearCart: () => void;
+};
 
-export const CartContext = createContext<CartContextType>({
-  cart: [],
-  loadCart: async () => {},
-  addToCart: async () => {},
-  updateCartItemQuantity: async () => {},
-  removeFromCart: async () => {},
-  isLoading: false,
-  error: null,
-})
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-type Props = { children: ReactNode }
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) throw new Error("useCart debe usarse dentro de CartProvider");
+  return context;
+};
 
-export const CartProvider = ({ children }: Props) => {
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export const CartProvider = ({ children }: { children: React.ReactNode }) => {
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 🔹 GET → cargar carrito
-  const loadCart = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const res = await fetch("/api/cart")
-      if (!res.ok) throw new Error("Error al cargar carrito")
-      const data: CartItem[] = await res.json()
-      setCart(data)
-      setError(null)
-    } catch (err) {
-      console.error("Fallo al cargar carrito:", err)
-      setError("No se pudo cargar el carrito.")
-      setCart([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // 🔹 POST → agregar producto
-  const addToCart = async (productId: number) => {
-    const prevCart = [...cart]
-
-    // Optimistic update (actualiza en memoria antes de la API)
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product_id === productId)
-      if (existing) {
-        return prev.map((item) =>
-          item.product_id === productId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      }
-      return [...prev, { id: Date.now(), product_id: productId, quantity: 1 }]
-    })
-
-    try {
-      const res = await fetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, quantity: 1 }),
-      })
-      if (!res.ok) throw new Error("Error al guardar en la base de datos")
-      await loadCart()
-    } catch (err) {
-      console.error("❌ Error al añadir producto:", err)
-      setCart(prevCart) // rollback si falla
-    }
-  }
-
-  // 🔹 PUT → actualizar cantidad
-  const updateCartItemQuantity = async (cartItemId: number, quantity: number) => {
-    const prevCart = [...cart]
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === cartItemId ? { ...item, quantity } : item
-      )
-    )
-    try {
-      const res = await fetch("/api/cart", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: cartItemId, quantity }),
-      })
-      if (!res.ok) throw new Error("Error al actualizar cantidad")
-      await loadCart()
-    } catch (err) {
-      console.error("❌ Error al actualizar producto:", err)
-      setCart(prevCart)
-    }
-  }
-
-  // 🔹 DELETE → eliminar producto
-  const removeFromCart = async (cartItemId: number) => {
-    const prevCart = [...cart]
-    setCart((prev) => prev.filter((item) => item.id !== cartItemId))
-    try {
-      const res = await fetch("/api/cart", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: cartItemId }),
-      })
-      if (!res.ok) throw new Error("Error al eliminar")
-      await loadCart()
-    } catch (err) {
-      console.error("❌ Error al eliminar producto:", err)
-      setCart(prevCart)
-    }
-  }
-
-  // 🚀 Cargar carrito solo una vez al montar el provider
   useEffect(() => {
-    loadCart()
-  }, [loadCart])
+    const fetchInitialCart = async () => {
+      try {
+        const response = await fetch('/api/cart');
+        if (!response.ok) {
+          throw new Error('Failed to fetch cart');
+        }
+        const data = await response.json();
+        setCart(data);
+      } catch (error: any) {
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchInitialCart();
+  }, []);
+
+  const addToCart = useCallback(async (productId: number) => {
+    const tempId = Date.now();
+    const productResponse = await fetch(`/api/products/${productId}`);
+    const product = await productResponse.json();
+
+    const newItem: CartItem = {
+      id: tempId,
+      quantity: 1,
+      product: {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image_url: product.image_url,
+      },
+    };
+
+    setCart(prevCart => [...prevCart, newItem]);
+
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, quantity: 1 }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to add item to cart');
+      }
+      const updatedCart = await response.json();
+      setCart(updatedCart);
+    } catch (error: any) {
+      setError(error.message);
+      setCart(cart => cart.filter(item => item.id !== tempId));
+    }
+  }, []);
+
+  const removeFromCart = useCallback(async (id: number) => {
+    const originalCart = [...cart];
+    setCart(cart => cart.filter(item => item.id !== id));
+
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to remove item from cart');
+      }
+    } catch (error: any) {
+      setError(error.message);
+      setCart(originalCart);
+    }
+  }, [cart]);
+
+  const updateCartItemQuantity = useCallback(async (id: number, quantity: number) => {
+    const originalCart = [...cart];
+    setCart(cart => cart.map(item => item.id === id ? { ...item, quantity } : item));
+
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, quantity }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update item quantity');
+      }
+    } catch (error: any) {
+      setError(error.message);
+      setCart(originalCart);
+    }
+  }, [cart]);
+
+  const clearCart = useCallback(async () => {
+    const originalCart = [...cart];
+    setCart([]);
+
+    try {
+      const response = await fetch('/api/cart/clear', {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to clear cart');
+      }
+    } catch (error: any) {
+      setError(error.message);
+      setCart(originalCart);
+    }
+  }, [cart]);
+
+  const loadCart = useCallback(() => {
+    setIsLoading(true);
+    fetch('/api/cart')
+      .then(res => res.json())
+      .then(data => {
+        setCart(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setIsLoading(false);
+      });
+  }, []);
 
   return (
     <CartContext.Provider
       value={{
         cart,
+        isLoading,
+        error,
         loadCart,
         addToCart,
         updateCartItemQuantity,
         removeFromCart,
-        isLoading,
-        error,
+        clearCart,
       }}
     >
       {children}
     </CartContext.Provider>
-  )
-}
-
-export const useCart = () => useContext(CartContext)
+  );
+};

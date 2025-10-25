@@ -1,19 +1,15 @@
-//app/components/header.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { User, Menu, Search, ShoppingCart, Plus, Minus, X } from "lucide-react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { useCart, CartItem } from "@/components/context/CartContext";
-import Link from "next/link"   // 👈 IMPORTANTE: agregá esta línea
-import { SheetClose } from "@/components/ui/sheet" // 👈 Importá esto
+import Link from "next/link" 
+import { useRouter, useSearchParams } from "next/navigation";
 
-
-
-
-// --- CartSheet conectado al Contexto ---
+// --- CartSheet conectado al Contexto (Modificado para navegar a /checkout) ---
 const CartSheet = () => {
     const {
         cart: cartItems,
@@ -23,9 +19,45 @@ const CartSheet = () => {
     } = useCart();
     const [open, setOpen] = useState(false);
 
-    useEffect(() => {
-        loadCart();
-    }, [loadCart]);
+    // Eliminamos el useEffect que cargaba el carrito, ya que ahora se maneja en el CartContext
+    
+    // Lógica de búsqueda (se mantiene)
+    const [searchTerm, setSearchTerm] = useState("");   
+    const [suggestions, setSuggestions] = useState<{ id: number; name: string }[]>([]); 
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    
+    const handleSearch = (e?: React.FormEvent) => { 
+        if (e) e.preventDefault();
+        const params = new URLSearchParams(searchParams.toString());
+        if (searchTerm) {
+            params.set("search", searchTerm);
+        } else {
+            params.delete("search");
+        }
+        router.push(`/productos?${params.toString()}`);
+    };
+
+    useEffect(() => { 
+        const delayDebounce = setTimeout(async () => {
+            if (searchTerm.length < 2) {
+                setSuggestions([]);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/suggestions?q=${searchTerm}`);
+                const data = await res.json();
+                setSuggestions(data);
+            } catch (error) {
+                console.error("Error buscando sugerencias:", error);
+                setSuggestions([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
+    // Fin Lógica de búsqueda
 
     const increaseQuantity = (item: CartItem) => {
         updateCartItemQuantity(item.id, item.quantity + 1);
@@ -45,19 +77,10 @@ const CartSheet = () => {
 
     const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-    // ✅ Cambiado: usamos product?.price
     const cartTotal = cartItems.reduce(
         (acc, item) => acc + item.quantity * (item.product?.price || 0),
         0
     );
-
-    const handleWhatsApp = () => {
-        const message = cartItems
-            .map((i) => `${i.product?.name} x${i.quantity}`)
-            .join(", ");
-        const url = `https://wa.me/?text=Mi pedido: ${encodeURIComponent(message)}`;
-        window.open(url, "_blank");
-    };
 
     const handleBackToStore = () => {
         setOpen(false);
@@ -103,7 +126,6 @@ const CartSheet = () => {
                         cartItems.map((item: CartItem) => (
                             <div key={item.id} className="flex items-center justify-between border-b pb-2">
                                 <div className="flex-1">
-                                    {/* ✅ Cambiado a product?.name */}
                                     <p className="font-semibold">{item.product?.name}</p>
                                     <p className="text-sm text-muted-foreground">
                                         ${(item.product?.price || 0).toFixed(2)} x {item.quantity}
@@ -145,22 +167,27 @@ const CartSheet = () => {
                         <p className="font-semibold text-right">
                             Total: ${cartTotal.toFixed(2)}
                         </p>
-                        <Button
-                            variant="outline"
-                            className="w-full border-green-500 text-green-600 hover:bg-green-50"
-                            onClick={handleWhatsApp}
-                        >
-                            Enviar Pedido por WhatsApp
-                        </Button>
-                          <SheetClose asChild>
-    <Link
-      href="/productos"
-      className="block text-center text-sm text-blue-600 hover:underline"
-    >
-      Seguir comprando
-    </Link>
-  </SheetClose>
-
+                        
+                        {/* ✅ Nuevo: Botón que cierra el Sheet y navega a la página /checkout */}
+                        <SheetClose asChild>
+                            <Link href="/checkout" passHref>
+                                <Button
+                                    className="w-full bg-green-600 hover:bg-green-700"
+                                >
+                                    Proceder al Pago
+                                </Button>
+                            </Link>
+                        </SheetClose>
+                        
+                        {/* Botón de seguir comprando */}
+                        <SheetClose asChild>
+                            <Link
+                                href="/productos"
+                                className="block text-center text-sm text-blue-600 hover:underline"
+                            >
+                                Seguir comprando
+                            </Link>
+                        </SheetClose>
                     </div>
                 )}
             </SheetContent>
@@ -168,7 +195,7 @@ const CartSheet = () => {
     );
 };
 
-// --- Helper NavLink ---
+// --- Helper NavLink (sin cambios) ---
 const NavLink = ({
     href,
     children,
@@ -186,14 +213,43 @@ const NavLink = ({
     </a>
 );
 
-// --- Header completo ---
-export function Header() {
+// --- Header completo (sin cambios) ---
+export default function Header() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [suggestions, setSuggestions] = useState<{ id: number; name: string }[]>([]);
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log("Simulación de búsqueda para:", searchTerm);
+    const handleSearch = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const params = new URLSearchParams(searchParams.toString());
+        if (searchTerm) {
+            params.set("search", searchTerm);
+        } else {
+            params.delete("search");
+        }
+        router.push(`/productos?${params.toString()}`);
     };
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(async () => {
+            if (searchTerm.length < 2) {
+                setSuggestions([]);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/suggestions?q=${searchTerm}`);
+                const data = await res.json();
+                setSuggestions(data);
+            } catch (error) {
+                console.error("Error buscando sugerencias:", error);
+                setSuggestions([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -202,9 +258,7 @@ export function Header() {
                     {/* Logo */}
                     <NavLink href="/" className="flex items-center space-x-2">
                         <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                            <span className="text-primary-foreground font-bold text-sm">
-                                RV
-                            </span>
+                            <span className="text-primary-foreground font-bold text-sm">RV</span>
                         </div>
                         <span className="font-bold text-xl text-primary">Rincón Verde</span>
                     </NavLink>
@@ -219,17 +273,34 @@ export function Header() {
                         <NavLink href="/blog">Blog</NavLink>
                     </nav>
 
-                    {/* Search Bar */}
-                    <div className="hidden md:flex items-center space-x-2 flex-1 max-w-sm mx-6">
-                        <form onSubmit={handleSearch} className="relative w-full">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                            <Input
-                                placeholder="Buscar productos..."
-                                className="pl-10"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </form>
+                    {/* 🔍 Buscador Desktop */}
+                    <div className="hidden md:flex gap-2 items-center relative">
+                        <Input
+                            type="text"
+                            placeholder="Buscar productos..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-64"
+                        />
+                        <Button onClick={handleSearch}>Buscar</Button>
+
+                        {suggestions.length > 0 && (
+                            <ul className="absolute top-full mt-1 w-64 bg-white border rounded shadow z-50">
+                                {suggestions.map((item) => (
+                                    <li
+                                        key={item.id}
+                                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                        onClick={() => {
+                                            setSearchTerm(item.name);
+                                            setSuggestions([]);
+                                            handleSearch();
+                                        }}
+                                    >
+                                        {item.name}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     {/* Actions */}
@@ -262,24 +333,12 @@ export function Header() {
                                     </form>
 
                                     <nav className="flex flex-col space-y-2">
-                                        <NavLink href="/" className="py-2">
-                                            Inicio
-                                        </NavLink>
-                                        <NavLink href="/productos" className="py-2">
-                                            Productos
-                                        </NavLink>
-                                        <NavLink href="/categorias" className="py-2">
-                                            Categorías
-                                        </NavLink>
-                                        <NavLink href="/nosotros" className="py-2">
-                                            Nosotros
-                                        </NavLink>
-                                        <NavLink href="/contacto" className="py-2">
-                                            Contacto
-                                        </NavLink>
-                                        <NavLink href="/blog" className="py-2">
-                                            Blog
-                                        </NavLink>
+                                        <NavLink href="/" className="py-2">Inicio</NavLink>
+                                        <NavLink href="/productos" className="py-2">Productos</NavLink>
+                                        <NavLink href="/categorias" className="py-2">Categorías</NavLink>
+                                        <NavLink href="/nosotros" className="py-2">Nosotros</NavLink>
+                                        <NavLink href="/contacto" className="py-2">Contacto</NavLink>
+                                        <NavLink href="/blog" className="py-2">Blog</NavLink>
                                     </nav>
                                 </div>
                             </SheetContent>
