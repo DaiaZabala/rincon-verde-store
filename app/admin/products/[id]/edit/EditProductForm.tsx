@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input" // Asumo que tienes un componente Input
 import { Textarea } from "@/components/ui/textarea" // Asumo que tienes un componente Textarea
@@ -28,10 +28,23 @@ export default function EditProductForm({ product, onSubmit }: EditProductFormPr
   })
   
   const [isLoading, setIsLoading] = useState(false) 
+    const [categories, setCategories] = useState<Array<any>>([])
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    const target = e.target as HTMLInputElement
-    const { name, value, type, checked } = target
+    useEffect(() => {
+        let mounted = true
+        fetch('/api/categories')
+            .then((r) => r.json())
+            .then((data) => {
+                if (!mounted) return
+                setCategories(data.categories || [])
+            })
+            .catch((e) => console.error('Error cargando categorias', e))
+        return () => { mounted = false }
+    }, [])
+
+    function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+        const target = e.target as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement
+        const { name, value, type, checked } = target as unknown as { name: string; value: string; type: string; checked?: boolean }
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value
@@ -82,19 +95,16 @@ export default function EditProductForm({ product, onSubmit }: EditProductFormPr
                 />
             </div>
             
-            {/* Campo 2: Categoría */}
-            <div className="space-y-1">
-                <Label htmlFor="category_id">ID de Categoría</Label>
-                <Input
-                    type="text"
-                    id="category_id"
-                    name="category_id"
-                    value={formData.category_id}
-                    onChange={handleChange}
-                    placeholder="Categoría ID"
-                    disabled={isLoading}
-                />
-            </div>
+                        {/* Campo 2: Categoría */}
+                        <div className="space-y-1">
+                                <Label htmlFor="category_id">Categoría</Label>
+                                <select aria-label="Categoría" id="category_id" name="category_id" value={formData.category_id ?? ''} onChange={handleChange} className="block w-full rounded-md border px-2 py-1" disabled={isLoading}>
+                                    <option value="">Sin categoría</option>
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                        </div>
         </div>
 
         {/* Campo 3: Descripción (ancho completo) */}

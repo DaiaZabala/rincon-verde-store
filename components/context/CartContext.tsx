@@ -1,162 +1,156 @@
-"use client"
+"use client";
 
-import {
-  createContext,
-  useState,
-  useEffect,
-  ReactNode,
-  useContext,
-  useCallback,
-} from "react"
+import { createContext, useContext, useState, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export type CartItem = {
-  id: number
-  product_id: number
-  quantity: number
+  id: number;
+  quantity: number;
   product?: {
-    id: number
-    name: string
-    price: number
-    image_url: string
-  }
-}
+    id: number;
+    name: string;
+    price: number;
+    image_url?: string;
+  };
+};
 
 type CartContextType = {
-  cart: CartItem[]
-  loadCart: () => Promise<void>
-  addToCart: (productId: number) => Promise<void>
-  updateCartItemQuantity: (cartItemId: number, quantity: number) => Promise<void>
-  removeFromCart: (cartItemId: number) => Promise<void>
-  isLoading: boolean
-  error: string | null
-}
+  cart: CartItem[];
+  isLoading: boolean;
+  error: string | null;
+  addToCart: (productId: number) => Promise<void>;
+  updateCartItemQuantity: (id: number, quantity: number) => Promise<void>;
+  removeFromCart: (id: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+};
 
-export const CartContext = createContext<CartContextType>({
-  cart: [],
-  loadCart: async () => {},
-  addToCart: async () => {},
-  updateCartItemQuantity: async () => {},
-  removeFromCart: async () => {},
-  isLoading: false,
-  error: null,
-})
+const CartContext = createContext<CartContextType | undefined>(undefined);
+export { CartContext };
 
-type Props = { children: ReactNode }
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) throw new Error("useCart debe usarse dentro de CartProvider");
+  return context;
+};
 
-export const CartProvider = ({ children }: Props) => {
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export const CartProvider = ({ children, initialCart }: { children: React.ReactNode; initialCart?: CartItem[] }) => {
+  const [cart, setCart] = useState<CartItem[]>(initialCart || []);
+  const [isLoading, setIsLoading] = useState(initialCart ? false : true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // 🔹 GET → cargar carrito
-  const loadCart = useCallback(async () => {
-    setIsLoading(true)
+  // No client-side automatic load: initialCart is provided by server-side prefetch
+
+  // No dev instrumentation here: removed to keep production-like behavior.
+
+  const addToCart = useCallback(async (productId: number) => {
     try {
-      const res = await fetch("/api/cart")
-      if (!res.ok) throw new Error("Error al cargar carrito")
-      const data: CartItem[] = await res.json()
-      setCart(data)
-      setError(null)
-    } catch (err) {
-      console.error("Fallo al cargar carrito:", err)
-      setError("No se pudo cargar el carrito.")
-      setCart([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+      // Check current quantity in cart to avoid exceeding stock
+      const existing = cart.find((c) => c.product?.id === productId)
+      const currentQty = existing ? existing.quantity : 0
 
-  // 🔹 POST → agregar producto
-  const addToCart = async (productId: number) => {
-    const prevCart = [...cart]
-
-    // Optimistic update (actualiza en memoria antes de la API)
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product_id === productId)
-      if (existing) {
-        return prev.map((item) =>
-          item.product_id === productId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      }
-      return [...prev, { id: Date.now(), product_id: productId, quantity: 1 }]
-    })
-
-    try {
+      // Fetch product to know stock (lightweight endpoint could be added; using /api/products? single product if available)
+      // For now, we conservatively attempt the POST and rely on server validation. But prevent obvious overflows client-side.
       const res = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, quantity: 1 }),
-      })
-      if (!res.ok) throw new Error("Error al guardar en la base de datos")
-      await loadCart()
-    } catch (err) {
-      console.error("❌ Error al añadir producto:", err)
-      setCart(prevCart) // rollback si falla
-    }
-  }
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        // Detect stock error returned by server
+        if (res.status === 400 && body && (body.error || body.available !== undefined)) {
+          toast({ title: "Sin stock disponible", description: body.error || "No hay suficiente stock" });
+          throw new Error(body.error || "Sin stock disponible");
+        }
+        throw new Error("Error al agregar al carrito");
+      }
 
-  // 🔹 PUT → actualizar cantidad
-  const updateCartItemQuantity = async (cartItemId: number, quantity: number) => {
-    const prevCart = [...cart]
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === cartItemId ? { ...item, quantity } : item
-      )
-    )
+      const updatedCart = await res.json();
+      setCart(updatedCart);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al agregar al carrito");
+    }
+  }, [cart, toast]);
+
+  const updateCartItemQuantity = useCallback(async (id: number, quantity: number) => {
     try {
+      // Prevent client-side quantities below 1
+      const newQty = Math.max(1, quantity)
+
       const res = await fetch("/api/cart", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: cartItemId, quantity }),
-      })
-      if (!res.ok) throw new Error("Error al actualizar cantidad")
-      await loadCart()
-    } catch (err) {
-      console.error("❌ Error al actualizar producto:", err)
-      setCart(prevCart)
-    }
-  }
+        body: JSON.stringify({ id, quantity: newQty }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 400 && body && (body.error || body.available !== undefined)) {
+          toast({ title: "Sin stock disponible", description: body.error || "No hay suficiente stock" });
+          throw new Error(body.error || "Sin stock disponible");
+        }
+        throw new Error("Error al actualizar cantidad");
+      }
 
-  // 🔹 DELETE → eliminar producto
-  const removeFromCart = async (cartItemId: number) => {
-    const prevCart = [...cart]
-    setCart((prev) => prev.filter((item) => item.id !== cartItemId))
+      const updatedCart = await res.json();
+      setCart(updatedCart);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al actualizar");
+    }
+  }, [toast]);
+
+  const removeFromCart = useCallback(async (id: number) => {
     try {
       const res = await fetch("/api/cart", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: cartItemId }),
-      })
-      if (!res.ok) throw new Error("Error al eliminar")
-      await loadCart()
-    } catch (err) {
-      console.error("❌ Error al eliminar producto:", err)
-      setCart(prevCart)
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error("Error al eliminar producto");
+      const updatedCart = await res.json();
+      setCart(updatedCart);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al eliminar");
     }
-  }
+  }, []);
 
-  // 🚀 Cargar carrito solo una vez al montar el provider
-  useEffect(() => {
-    loadCart()
-  }, [loadCart])
+  const clearCart = useCallback(async () => {
+    try {
+      // Optimistic update for snappy UX
+      setCart([])
+      toast({ title: "Vaciando carrito", description: "El carrito se está vaciando..." })
+
+      const res = await fetch("/api/cart/clear", { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body?.error || "No se pudo vaciar el carrito", variant: 'destructive' });
+        // refetch to restore server state
+        const fallback = await fetch('/api/cart').then(r => r.json()).catch(() => [])
+        setCart(Array.isArray(fallback) ? fallback : [])
+        throw new Error(body?.error || "Error al vaciar carrito");
+      }
+      // Server returned updated cart; ensure sync
+      const updated = await res.json().catch(() => [])
+      setCart(Array.isArray(updated) ? updated : [])
+      toast({ title: "Carrito vaciado", description: "Todos los artículos han sido eliminados" })
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al vaciar el carrito");
+    }
+  }, []);
 
   return (
     <CartContext.Provider
       value={{
         cart,
-        loadCart,
+        isLoading,
+        error,
         addToCart,
         updateCartItemQuantity,
         removeFromCart,
-        isLoading,
-        error,
+        clearCart,
       }}
     >
       {children}
     </CartContext.Provider>
-  )
-}
-
-export const useCart = () => useContext(CartContext)
+  );
+};

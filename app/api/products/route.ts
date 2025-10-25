@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    }, { status: 200, headers: { 'Cache-Control': 'public, max-age=10' } })
   } catch (error) {
     console.error("Error fetching products:", error)
     return NextResponse.json({

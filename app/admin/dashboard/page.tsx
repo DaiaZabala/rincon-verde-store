@@ -14,7 +14,7 @@ import { AdminNavbar } from "../../../components/adminnavbar";
 function StatCard({ title, value, description, icon: Icon, iconClassName = "text-muted-foreground", valueClassName = "text-2xl font-bold" }: {
   title: string;
   value: string | number;
-  description: string;
+  description: React.ReactNode;
   icon: React.ElementType;
   iconClassName?: string;
   valueClassName?: string;

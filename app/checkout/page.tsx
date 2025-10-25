@@ -4,15 +4,15 @@ import { CheckoutForm } from "@/components/checkout-form"
 import { useCart } from "@/components/context/CartContext"
 
 export default function CheckoutPage() {
-  const { cart } = useCart()
+  const { cart, clearCart } = useCart()
 
-  // ✅ Calcular total desde el contexto
+  // Calcular total
   const total = cart.reduce(
     (acc, item) => acc + (item.product?.price || 0) * item.quantity,
     0
   )
 
-  // ✅ Transformar items al formato que espera CheckoutForm
+  // Transformar items al formato que espera CheckoutForm
   const checkoutItems = cart.map((item) => ({
     id: item.id,
     quantity: item.quantity,
@@ -21,21 +21,34 @@ export default function CheckoutPage() {
     image_url: item.product?.image_url || "",
   }))
 
+  const handleBackToCart = () => {
+    // Navegar de vuelta al carrito
+    window.history.back()
+  }
+
+  const handleSuccess = async () => {
+    // Limpiar el carrito después de una compra exitosa
+    await clearCart()
+    // Redirigir a una página de agradecimiento o inicio
+    window.location.href = "/"
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 space-y-6">
       <h1 className="text-2xl font-bold mb-6">Finalizar Compra</h1>
 
+
+      {/* Contenido principal */}
       {checkoutItems.length === 0 ? (
-        <p className="text-muted-foreground">Tu carrito está vacío.</p>
+        <p className="text-muted-foreground">
+          Tu carrito está vacío. Agrega productos antes de finalizar la compra.
+        </p>
       ) : (
         <CheckoutForm
           cartItems={checkoutItems}
           total={total}
-          onBack={() => (window.location.href = "/cart")}
-          onSuccess={() => {
-            // 👇 acá podrías limpiar el carrito si implementás clearCart en el contexto
-            window.location.href = "/"
-          }}
+          onBack={handleBackToCart}
+          onSuccess={handleSuccess}
         />
       )}
     </div>

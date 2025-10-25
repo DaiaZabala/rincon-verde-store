@@ -1,13 +1,32 @@
 "use client"
 
+import React from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Star } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCart } from "@/components/context/CartContext"
 import { useToast } from "@/hooks/use-toast"
+
+// SafeImage: wrapper that falls back to a placeholder if the original src fails to load
+function SafeImage({ src, alt, placeholderSrc }: { src?: string | null; alt: string; placeholderSrc: string }) {
+  const [imgSrc, setImgSrc] = React.useState<string>(src || placeholderSrc)
+
+  return (
+    // next/image supports onError on the underlying img; we use a simple img fallback here for reliability
+    <img
+      src={imgSrc}
+      alt={alt}
+      className="w-full h-full object-cover rounded-t-lg"
+      onError={() => {
+        if (imgSrc !== placeholderSrc) setImgSrc(placeholderSrc)
+      }}
+    />
+  )
+}
 
 interface Product {
   id: number
@@ -36,7 +55,8 @@ interface ProductGridProps {
 export function ProductGrid({ products = [], pagination, searchParams }: ProductGridProps) {
   const router = useRouter()
   const currentSearchParams = useSearchParams()
-  const { dispatch } = useCart()
+  const cart = useCart()
+  const addItem = (cart as any).addItem ?? (cart as any).addToCart
   const { toast } = useToast()
 
   const createPageUrl = (page: number) => {
@@ -46,20 +66,23 @@ export function ProductGrid({ products = [], pagination, searchParams }: Product
   }
 
   const addToCart = (product: Product) => {
-    dispatch({
-      type: "ADD_ITEM",
-      payload: {
+    // addItem may throw (server-side stock validation). Handle it and show toast.
+    Promise.resolve(
+      addItem({
         id: product.id,
         name: product.name,
         price: product.price,
         image_url: product.image_url,
         stock_quantity: product.stock_quantity,
-      },
-    })
-
-    toast({
-      title: "Producto agregado",
-      description: `${product.name} ha sido agregado al carrito`,
+      }),
+    ).then(() => {
+      toast({
+        title: "Producto agregado",
+        description: `${product.name} ha sido agregado al carrito`,
+      })
+    }).catch((err: any) => {
+      // If addItem rejected with stock error, a toast is already shown by CartContext.
+      console.warn("addToCart failed:", err?.message || err)
     })
   }
 
@@ -88,10 +111,10 @@ export function ProductGrid({ products = [], pagination, searchParams }: Product
           <Card key={product.id} className="group hover:shadow-lg transition-shadow">
             <CardHeader className="p-0">
               <div className="relative aspect-square">
-                <img
-                  src={product.image_url || "/placeholder.svg?height=300&width=300&query=school supply"}
+                <SafeImage
+                  src={product.image_url}
                   alt={product.name}
-                  className="w-full h-full object-cover rounded-t-lg"
+                  placeholderSrc="/placeholder.svg?height=300&width=300&query=school supply"
                 />
                 {product.stock_quantity < 10 && product.stock_quantity > 0 && (
                   <Badge variant="secondary" className="absolute top-2 left-2">

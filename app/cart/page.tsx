@@ -1,34 +1,37 @@
-"use client"
+"use client";
 
-import Link from "next/link"   // 👈 Importá Link
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { DollarSign } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useCart } from "@/components/context/CartContext"
-import { SheetClose } from "@/components/ui/sheet" // 👈 Importá esto
+import Link from "next/link"; // 👈 Importá Link
+// ...existing imports...
+import Header from "@/components/header";
+import { Footer } from "@/components/footer";
+import { DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/components/context/CartContext";
+import { SheetClose } from "@/components/ui/sheet"; // 👈 Importá esto
+import { Trash2 } from "lucide-react";
+import ClearCartButton from "@/components/ClearCartButton";
 
 export default function CartPage() {
-  const { cart } = useCart()
+  const { cart, removeFromCart } = useCart();
 
   const total = cart.reduce(
     (acc, item) => acc + (item.product?.price || 0) * item.quantity,
     0
-  )
+  );
 
   const generateWhatsAppMessage = () => {
-    if (cart.length === 0) return ""
-    let message = "Hola, quiero realizar el siguiente pedido:%0A"
+    if (cart.length === 0) return "";
+    let message = "Hola, quiero realizar el siguiente pedido:%0A";
     cart.forEach((item) => {
       message += `- ${item.product?.name} x${item.quantity} ($${(
         (item.product?.price || 0) * item.quantity
-      ).toFixed(2)})%0A`
-    })
-    message += `Total: $${total.toFixed(2)}`
-    return message
-  }
+      ).toFixed(2)})%0A`;
+    });
+    message += `Total: $${total.toFixed(2)}`;
+    return message;
+  };
 
-  const whatsappLink = `https://wa.me/5493794924276?text=${generateWhatsAppMessage()}`
+  const whatsappLink = `https://wa.me/5493794924276?text=${generateWhatsAppMessage()}`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -56,11 +59,22 @@ export default function CartPage() {
                       Cantidad: {item.quantity}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-1 text-lg font-bold text-primary">
-                    <DollarSign className="h-4 w-4" />
-                    <span>
-                      {((item.product?.price || 0) * item.quantity).toFixed(2)}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-1 text-lg font-bold text-primary">
+                      <DollarSign className="h-4 w-4" />
+                      <span>
+                        {((item.product?.price || 0) * item.quantity).toFixed(
+                          2
+                        )}
+                      </span>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -71,24 +85,29 @@ export default function CartPage() {
               <span>${total.toFixed(2)}</span>
             </div>
 
-            <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <Button className="w-full bg-green-500 hover:bg-green-600 text-white">
-                Hacer pedido por WhatsApp
-              </Button>
-            </a>
+            <div className="space-y-4">
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full bg-green-500 hover:bg-green-600 text-white">
+                  Hacer pedido por WhatsApp
+                </Button>
+              </a>
 
-             <SheetClose asChild>
-    <Link
-      href="/productos"
-      className="block text-center text-sm text-blue-600 hover:underline"
-    >
-      Seguir comprando
-    </Link>
-  </SheetClose>
+              <div className="flex gap-2">
+                <Link href="/productos" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    Seguir comprando
+                  </Button>
+                </Link>
+
+                <div className="w-40">
+                  <ClearCartButton />
+                </div>
+              </div>
+            </div>
           </>
         )}
       </main>
       <Footer />
     </div>
-  )
+  );
 }

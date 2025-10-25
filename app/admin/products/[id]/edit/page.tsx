@@ -49,9 +49,9 @@ export default async function EditProductPage({ params }: { params: Params }) {
     notFound()
   }
 
-  const updateProductAction = async (data: any) => {
+  const updateProductAction = async (data: any, id: string) => {
     "use server"
-    await handleSubmit(data, params.id)
+    await handleSubmit(data, id)
   }
   
   // Lógica para determinar el estado actual de visibilidad
@@ -102,7 +102,7 @@ export default async function EditProductPage({ params }: { params: Params }) {
               {/* El formulario completo ahora se renderiza aquí, mejorando la legibilidad interna */}
               <EditProductForm
                 product={product}
-                onSubmit={updateProductAction}
+                onSubmit={(data: any) => updateProductAction(data, String(product.id))}
               />
             </CardContent>
           </Card>

@@ -105,7 +105,7 @@ export function CheckoutForm({ cartItems, total, onBack, onSuccess }: CheckoutFo
       if (response.ok) {
         // Generate WhatsApp message and redirect
         const whatsappMessage = generateWhatsAppMessage()
-        const whatsappNumber = "1234567890" // Replace with actual WhatsApp business number
+        const whatsappNumber = "3794924276" // Replace with actual WhatsApp business number
         const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
 
         // Open WhatsApp
