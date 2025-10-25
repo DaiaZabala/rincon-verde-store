@@ -1,6 +1,6 @@
 // En el archivo: src/lib/auth.ts
 
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
@@ -53,15 +53,16 @@ export async function verifyToken(token: string) {
 
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   try {
-    const users = await sql<User>`
-      SELECT * FROM users
-      WHERE email = ${email} AND role = 'admin'
-      LIMIT 1
-    `;
+            const users = await sql`
+                SELECT * FROM users
+                WHERE email = ${email} AND role = 'admin'
+                LIMIT 1
+            `;
 
-    if (users.rows.length === 0) return null;
+            const usersArray = Array.isArray(users) ? users : [];
+            if (usersArray.length === 0) return null;
 
-    const user = users.rows[0];
+            const user = usersArray[0] as unknown as User;
 
     const isValid = await verifyPassword(password, user.password_hash);
 
@@ -82,8 +83,8 @@ export async function authenticateUser(email: string, password: string): Promise
  */
 export async function getCurrentUser() {
   // 🔑 CORRECCIÓN: Se llama a cookies() sin await.
-  const cookieStore = cookies(); 
-  const token = (await cookieStore).get("auth-token");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token");
 
   if (!token?.value) return null;
 
@@ -91,15 +92,16 @@ export async function getCurrentUser() {
     const payload = await verifyToken(token.value);
     if (!payload?.userId) return null;
 
-    const result = await sql<Pick<User, 'id' | 'name' | 'email' | 'role'>>`
-      SELECT id, name, email, role
-      FROM users
-      WHERE id = ${payload.userId} AND role = 'admin' AND is_active = true
-      LIMIT 1
-    `;
+            const result = await sql`
+                SELECT id, name, email, role
+                FROM users
+                WHERE id = ${payload.userId} AND role = 'admin' AND is_active = true
+                LIMIT 1
+            `;
 
-    const user = result.rows[0];
-    if (!user) return null;
+            const resultArray = Array.isArray(result) ? result : [];
+            const user = resultArray.length ? (resultArray[0] as unknown as Pick<User, 'id' | 'name' | 'email' | 'role'>) : null;
+        if (!user) return null;
 
     return user;
   } catch (error) {
@@ -121,24 +123,17 @@ export async function getUserId(): Promise<number | null> {
 // ─── COOKIE MANAGEMENT ───────────────────────────
 
 export async function setAuthCookie(token: string) {
-  // 🔑 CORRECCIÓN: Se llama a cookies() sin await.
-  const cookieStore = cookies(); 
-  (await cookieStore).set("auth-token", token, { 
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24, // 24 horas
-    path: "/",
-  });
+        const cookieStore = await cookies();
+        cookieStore.set("auth-token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24, // 24 horas
+        path: "/",
+    });
 }
 
 export async function clearAuthCookie() {
-  // CORRECCIÓN: El error 2339 se corrige llamando a cookies() sin 'await'.
-  // La función cookies() en Next.js ya es síncrona en este contexto.
-  const cookieStore = cookies(); 
-  
-  // Ahora .delete() funciona correctamente en el objeto cookieStore.
-  (await
-    // Ahora .delete() funciona correctamente en el objeto cookieStore.
-    cookieStore).delete("auth-token"); 
+        const cookieStore = await cookies();
+        cookieStore.delete("auth-token");
 }

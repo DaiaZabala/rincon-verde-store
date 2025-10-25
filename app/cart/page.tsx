@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link"; // 👈 Importá Link
+// ...existing imports...
 import Header from "@/components/header";
 import { Footer } from "@/components/footer";
 import { DollarSign } from "lucide-react";

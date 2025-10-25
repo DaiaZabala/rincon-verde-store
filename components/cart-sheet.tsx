@@ -11,7 +11,6 @@ import { CheckoutForm } from "@/components/checkout-form";
 export default function CartSheet() {
   const {
     cart: items,
-    loadCart,
     updateCartItemQuantity,
     removeFromCart,
     clearCart,
@@ -30,7 +29,11 @@ export default function CartSheet() {
   );
 
   const increaseQty = (item: CartItem) => {
-    updateCartItemQuantity(item.id, item.quantity + 1);
+    // solución rápida: casteo seguro para evitar el error de tipo
+    const max = ((item.product as unknown) as { stock_quantity?: number })?.stock_quantity ?? Infinity;
+    if (item.quantity < max) {
+      updateCartItemQuantity(item.id, item.quantity + 1)
+    }
   };
 
   const decreaseQty = (item: CartItem) => {
@@ -179,14 +182,14 @@ export default function CartSheet() {
                         <Minus className="h-4 w-4" />
                       </Button>
                       <span>{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => increaseQty(item)}
-                        disabled={isLoading}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => increaseQty(item)}
+                      disabled={isLoading || item.quantity >= (((item.product as unknown) as { stock_quantity?: number })?.stock_quantity ?? Infinity)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                       <Button
                         variant="destructive"
                         size="icon"
@@ -221,13 +224,16 @@ export default function CartSheet() {
               )}
 
               {showCheckoutForm && (
-                <CheckoutForm
-                  cartItems={items.map((i) => ({
-                    id: i.id,
-                    name: i.product?.name || "",
-                    price: i.product?.price || 0,
-                    quantity: i.quantity,
-                  }))}
+                <CheckoutForm
+                  cartItems={items
+                    .filter((i) => !!i.product)
+                    .map((i) => ({
+                      // send the actual product id (not the cart_item id)
+                      id: i.product?.id ?? i.id,
+                      name: i.product?.name || "",
+                      price: i.product?.price || 0,
+                      quantity: i.quantity,
+                    }))}
                   total={total}
                   onBack={() => setShowCheckoutForm(false)}
                   onSuccess={async () => {

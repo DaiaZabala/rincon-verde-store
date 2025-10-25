@@ -13,7 +13,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 const CartSheet = () => {
     const {
         cart: cartItems,
-        loadCart,
         updateCartItemQuantity,
         removeFromCart,
     } = useCart();

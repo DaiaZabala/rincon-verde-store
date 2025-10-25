@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export type CartItem = {
   id: number;
@@ -17,14 +18,14 @@ type CartContextType = {
   cart: CartItem[];
   isLoading: boolean;
   error: string | null;
-  loadCart: () => void;
-  addToCart: (productId: number) => void;
-  updateCartItemQuantity: (id: number, quantity: number) => void;
-  removeFromCart: (id: number) => void;
-  clearCart: () => void;
+  addToCart: (productId: number) => Promise<void>;
+  updateCartItemQuantity: (id: number, quantity: number) => Promise<void>;
+  removeFromCart: (id: number) => Promise<void>;
+  clearCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+export { CartContext };
 
 export const useCart = () => {
   const context = useContext(CartContext);
@@ -32,131 +33,94 @@ export const useCart = () => {
   return context;
 };
 
-export const CartProvider = ({ children }: { children: React.ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const CartProvider = ({ children, initialCart }: { children: React.ReactNode; initialCart?: CartItem[] }) => {
+  const [cart, setCart] = useState<CartItem[]>(initialCart || []);
+  const [isLoading, setIsLoading] = useState(initialCart ? false : true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchInitialCart = async () => {
-      try {
-        const response = await fetch('/api/cart');
-        if (!response.ok) {
-          throw new Error('Failed to fetch cart');
-        }
-        const data = await response.json();
-        setCart(data);
-      } catch (error: any) {
-        setError(error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchInitialCart();
-  }, []);
+  // No client-side automatic load: initialCart is provided by server-side prefetch
+
+  // No dev instrumentation here: removed to keep production-like behavior.
 
   const addToCart = useCallback(async (productId: number) => {
-    const tempId = Date.now();
-    const productResponse = await fetch(`/api/products/${productId}`);
-    const product = await productResponse.json();
-
-    const newItem: CartItem = {
-      id: tempId,
-      quantity: 1,
-      product: {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image_url: product.image_url,
-      },
-    };
-
-    setCart(prevCart => [...prevCart, newItem]);
-
     try {
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // Check current quantity in cart to avoid exceeding stock
+      const existing = cart.find((c) => c.product?.id === productId)
+      const currentQty = existing ? existing.quantity : 0
+
+      // Fetch product to know stock (lightweight endpoint could be added; using /api/products? single product if available)
+      // For now, we conservatively attempt the POST and rely on server validation. But prevent obvious overflows client-side.
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, quantity: 1 }),
       });
-      if (!response.ok) {
-        throw new Error('Failed to add item to cart');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        // Detect stock error returned by server
+        if (res.status === 400 && body && (body.error || body.available !== undefined)) {
+          toast({ title: "Sin stock disponible", description: body.error || "No hay suficiente stock" });
+          throw new Error(body.error || "Sin stock disponible");
+        }
+        throw new Error("Error al agregar al carrito");
       }
-      const updatedCart = await response.json();
+
+      const updatedCart = await res.json();
       setCart(updatedCart);
-    } catch (error: any) {
-      setError(error.message);
-      setCart(cart => cart.filter(item => item.id !== tempId));
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al agregar al carrito");
+    }
+  }, [cart, toast]);
+
+  const updateCartItemQuantity = useCallback(async (id: number, quantity: number) => {
+    try {
+      // Prevent client-side quantities below 1
+      const newQty = Math.max(1, quantity)
+
+      const res = await fetch("/api/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, quantity: newQty }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 400 && body && (body.error || body.available !== undefined)) {
+          toast({ title: "Sin stock disponible", description: body.error || "No hay suficiente stock" });
+          throw new Error(body.error || "Sin stock disponible");
+        }
+        throw new Error("Error al actualizar cantidad");
+      }
+
+      const updatedCart = await res.json();
+      setCart(updatedCart);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al actualizar");
+    }
+  }, [toast]);
+
+  const removeFromCart = useCallback(async (id: number) => {
+    try {
+      const res = await fetch("/api/cart", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error("Error al eliminar producto");
+      const updatedCart = await res.json();
+      setCart(updatedCart);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al eliminar");
     }
   }, []);
 
-  const removeFromCart = useCallback(async (id: number) => {
-    const originalCart = [...cart];
-    setCart(cart => cart.filter(item => item.id !== id));
-
-    try {
-      const response = await fetch('/api/cart', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to remove item from cart');
-      }
-    } catch (error: any) {
-      setError(error.message);
-      setCart(originalCart);
-    }
-  }, [cart]);
-
-  const updateCartItemQuantity = useCallback(async (id: number, quantity: number) => {
-    const originalCart = [...cart];
-    setCart(cart => cart.map(item => item.id === id ? { ...item, quantity } : item));
-
-    try {
-      const response = await fetch('/api/cart', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, quantity }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update item quantity');
-      }
-    } catch (error: any) {
-      setError(error.message);
-      setCart(originalCart);
-    }
-  }, [cart]);
-
   const clearCart = useCallback(async () => {
-    const originalCart = [...cart];
-    setCart([]);
-
     try {
-      const response = await fetch('/api/cart/clear', {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to clear cart');
-      }
-    } catch (error: any) {
-      setError(error.message);
-      setCart(originalCart);
+      await fetch("/api/cart/clear", { method: "DELETE" });
+      setCart([]);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al vaciar el carrito");
     }
-  }, [cart]);
-
-  const loadCart = useCallback(() => {
-    setIsLoading(true);
-    fetch('/api/cart')
-      .then(res => res.json())
-      .then(data => {
-        setCart(data);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setIsLoading(false);
-      });
   }, []);
 
   return (
@@ -165,7 +129,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         cart,
         isLoading,
         error,
-        loadCart,
         addToCart,
         updateCartItemQuantity,
         removeFromCart,

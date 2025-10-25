@@ -14,7 +14,7 @@ export async function GET() {
       ORDER BY c.name ASC
     `
 
-    return NextResponse.json({ categories })
+    return NextResponse.json({ categories }, { status: 200, headers: { 'Cache-Control': 'public, max-age=10' } })
   } catch (error) {
     console.error("Error fetching categories:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
