@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/components/context/CartContext";
 import { SheetClose } from "@/components/ui/sheet"; // 👈 Importá esto
 import { Trash2 } from "lucide-react";
+import ClearCartButton from "@/components/ClearCartButton";
 
 export default function CartPage() {
   const { cart, removeFromCart } = useCart();
@@ -91,11 +92,17 @@ export default function CartPage() {
                 </Button>
               </a>
 
-              <Link href="/productos" className="block w-full">
-                <Button variant="outline" className="w-full">
-                  Seguir comprando
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link href="/productos" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    Seguir comprando
+                  </Button>
+                </Link>
+
+                <div className="w-40">
+                  <ClearCartButton />
+                </div>
+              </div>
             </div>
           </>
         )}

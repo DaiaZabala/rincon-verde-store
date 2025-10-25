@@ -116,8 +116,16 @@ export const CartProvider = ({ children, initialCart }: { children: React.ReactN
 
   const clearCart = useCallback(async () => {
     try {
-      await fetch("/api/cart/clear", { method: "DELETE" });
-      setCart([]);
+      const res = await fetch("/api/cart/clear", { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body?.error || "No se pudo vaciar el carrito" });
+        throw new Error(body?.error || "Error al vaciar carrito");
+      }
+      const updated = await res.json().catch(() => [])
+      // if server returned empty cart, set to []
+      setCart(Array.isArray(updated) ? updated : [])
+      toast({ title: "Carrito vaciado", description: "Todos los artículos han sido eliminados" })
     } catch (err: any) {
       setError(err.message || "Error desconocido al vaciar el carrito");
     }

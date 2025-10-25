@@ -2,11 +2,12 @@ import { sql } from "@/lib/db";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Edit, Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Product } from "@/lib/db"
 import { AdminNavbar } from "@/components/adminnavbar"
+import DeleteProductButton from "@/components/admin/DeleteProductButton"
 
 // Número de productos por página
 const PRODUCTS_PER_PAGE = 20
@@ -123,13 +124,7 @@ export default async function ProductsPage() {
                       <Edit className="mr-1 h-3 w-3" /> Editar
                     </Link>
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-destructive hover:text-destructive bg-transparent"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <DeleteProductButton id={product.id} />
                 </div>
               </CardContent>
             </Card>
