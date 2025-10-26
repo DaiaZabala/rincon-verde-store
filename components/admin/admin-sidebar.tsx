@@ -28,7 +28,7 @@ const navigation = [
   },
   {
     name: "Clientes",
-    href: "/admin/customers",
+    href: "/admin/users",
     icon: Users,
   },
   {
