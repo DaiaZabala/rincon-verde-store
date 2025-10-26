@@ -5,10 +5,11 @@ import { DollarSign, Package, ShoppingCart, Users, ArrowUpRight, Truck, Trending
 
 // 🛑 CORRECCIÓN: Se cambia el alias (@/) por la ruta relativa (../../../)
 // Esto asegura que Vercel encuentre el componente.
-import { AdminNavbar } from "../../../components/adminnavbar"; 
+import { AdminNavbar } from "../../../components/adminnavbar";
 
 // Importa tus funciones de obtención de datos desde la base de datos
-// import { getDashboardStats } from "@/lib/data/admin"; 
+// Se asume que getDashboardStats y getLowStockProducts están en ../../../lib/data
+import { getDashboardStats, getLowStockProducts } from "../../../lib/data";
 
 // Componente auxiliar para las Tarjetas de Estadísticas
 function StatCard({ title, value, description, icon: Icon, iconClassName = "text-muted-foreground", valueClassName = "text-2xl font-bold" }: {
@@ -30,22 +31,20 @@ function StatCard({ title, value, description, icon: Icon, iconClassName = "text
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </CardContent>
     </Card>
+    
   );
 }
 
 
 export default async function AdminDashboardPage() {
-  // 1. Obtener datos (función ficticia)
-  // const stats = await getDashboardStats(); 
+  // 1. Obtener datos reales de la base de datos de manera paralela
+  // Es crucial manejar la estructura de datos que devuelvan estas promesas
+  const [stats, lowStockProducts] = await Promise.all([
+    getDashboardStats(),      // Obtiene los números del dashboard (ej. total de productos)
+    getLowStockProducts()     // Obtiene la lista detallada de productos en bajo stock
+  ]);
 
-  const stats = {
-    totalSales: 12500.50,
-    newOrders: 42,
-    lowStock: 15,
-    newUsers: 12,
-  };
-
-
+  // 2. Renderizar el dashboard con los datos obtenidos
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Componente Admin Navbar */}
@@ -55,7 +54,7 @@ export default async function AdminDashboardPage() {
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
             <div className="flex items-center space-x-2">
-                {/* Botón de acción principal - Puedes añadir aquí un 'Nuevo Pedido' o 'Añadir Producto' */}
+                {/* Botón de acción principal */}
                 <button className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 transition-colors">
                     <ArrowUpRight className="h-4 w-4 mr-2" />
                     Ver Reporte Completo
@@ -104,7 +103,7 @@ export default async function AdminDashboardPage() {
 
         {/* --- Sección de Gestión Principal (Gráficos y Listas) --- */}
         <div className="grid gap-6 lg:grid-cols-3">
-            {/* Gráfico/Tabla de Pedidos Recientes (Ahora ocupa 2/3 del ancho) */}
+            {/* Gráfico/Tabla de Pedidos Recientes (Ocupa 2/3 del ancho) */}
             <Card className="lg:col-span-2">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-xl font-bold">Resumen de Actividad y Pedidos</CardTitle>
@@ -115,28 +114,39 @@ export default async function AdminDashboardPage() {
                         <p className="text-muted-foreground italic">¡Aquí irá el **Gráfico de Ventas** y/o la **Tabla de Pedidos Recientes**!</p>
                     </div>
                 </CardContent>
-            </Card>
+            </Card> {/* <--- CIERRE CORRECTO DE LA PRIMERA TARJETA */}
 
-            {/* Lista de Alertas de Stock Bajo (Ahora ocupa 1/3 del ancho) */}
+            {/* Lista de Alertas de Stock Bajo (Ocupa 1/3 del ancho) */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-xl font-bold text-orange-600 dark:text-orange-400">🚨 Alerta: Productos en Stock Bajo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {stats.lowStock > 0 ? (
-                         <ul className="space-y-3">
-                             <li className="flex justify-between items-center text-sm"><span className="font-medium">Camiseta Premium</span><span className="text-red-500 font-bold">2 unid.</span></li>
-                             <li className="flex justify-between items-center text-sm"><span className="font-medium">Taza Minimalista</span><span className="text-orange-500 font-bold">5 unid.</span></li>
-                             <li className="flex justify-between items-center text-sm"><span className="font-medium">Mousepad XL</span><span className="text-orange-500 font-bold">8 unid.</span></li>
-                             <li className="text-xs text-muted-foreground mt-2 pt-2 border-t text-center">Ver todos los productos en riesgo &rarr;</li>
-                         </ul>
+                    {/* Usamos el array lowStockProducts.length para verificar si hay productos */}
+                    {lowStockProducts.length > 0 ? ( 
+                        <ul className="space-y-3">
+                            
+                            {/* 🎯 Mapeamos sobre los datos reales */}
+                            {lowStockProducts.map((product: any) => (
+                                <li key={product.id} className="flex justify-between items-center text-sm">
+                                    <span className="font-medium">{product.name}</span>
+                                    {/* Aplicamos color basado en el nivel de stock (ej. rojo para <= 5, naranja para > 5) */}
+                                    <span className={`font-bold ${
+                                        product.stock_quantity <= 5 ? 'text-red-500' : 'text-orange-500'
+                                    }`}>
+                                        {product.stock_quantity} unid.
+                                    </span>
+                                </li>
+                            ))}
+                            
+                            <li className="text-xs text-muted-foreground mt-2 pt-2 border-t text-center">Ver todos los productos en riesgo &rarr;</li>
+                        </ul>
                     ) : (
                         <p className="text-green-500 font-medium">¡Stock al día! No hay alertas de productos bajos.</p>
                     )}
                 </CardContent>
-            </Card>
+            </Card> {/* <--- CIERRE CORRECTO DE LA SEGUNDA TARJETA */}
         </div>
-        
       </main>
     </div>
   );
